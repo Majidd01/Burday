@@ -2,315 +2,136 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#12081a" />
-  <meta name="description" content="A midnight birthday surprise for someone special." />
-  <title>Waiting for your surprise… 🎂</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+  <meta name="theme-color" content="#07090f" />
+  <meta name="description" content="A gaming-room birthday story for Zainab." />
+  <title>Knock knock… Happy Birthday, Zainab</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <div id="loader" class="loader" aria-live="polite" aria-busy="true">
-    <div class="loader__inner">
-      <div class="loader__cake" aria-hidden="true">🎂</div>
-      <p class="loader__text">Getting the party ready…</p>
+    <div class="loader__ring"></div>
+    <p class="loader__text">Booting birthday mode…</p>
+  </div>
+
+  <canvas id="room" class="room-canvas" aria-hidden="true"></canvas>
+
+  <div class="ui-chrome">
+    <button type="button" id="musicToggle" class="music-toggle" aria-pressed="false" aria-label="Play music">
+      <span aria-hidden="true">♪</span>
+    </button>
+    <div class="scroll-hint" id="scrollHint">
+      <span>Scroll to enter</span>
+      <i></i>
+    </div>
+    <div class="progress" aria-hidden="true">
+      <div class="progress__bar" id="progressBar"></div>
     </div>
   </div>
 
-  <canvas id="particles" class="particles" aria-hidden="true"></canvas>
-
-  <button
-    type="button"
-    id="musicToggle"
-    class="music-toggle"
-    aria-pressed="false"
-    aria-label="Play background music"
-    title="Music"
-  >
-    <span class="music-toggle__icon" aria-hidden="true">♪</span>
-  </button>
   <audio id="bgMusic" preload="auto" loop>
     <source src="music/song.wav" type="audio/wav" />
     <source src="music/song.mp3" type="audio/mpeg" />
   </audio>
 
-  <!-- COUNTDOWN GATE -->
-  <section id="countdownGate" class="gate" aria-label="Countdown">
-    <div class="gate__sky" id="gateSky" aria-hidden="true">
-      <span class="moon"></span>
-    </div>
-
-    <div class="gate__content">
-      <p class="gate__eyebrow">Psst… something special is coming</p>
-      <h1 class="gate__title" id="gateTitle">The surprise unlocks soon</h1>
-      <p class="gate__sub" id="gateSub">When the timer hits <strong>zero</strong>, the party begins ✨</p>
-
-      <div class="timer" role="timer" aria-live="polite" aria-atomic="true">
-        <div class="timer__block">
-          <span class="timer__value" id="tHours">00</span>
-          <span class="timer__label">hours</span>
-        </div>
-        <span class="timer__sep" aria-hidden="true">:</span>
-        <div class="timer__block">
-          <span class="timer__value" id="tMinutes">00</span>
-          <span class="timer__label">mins</span>
-        </div>
-        <span class="timer__sep" aria-hidden="true">:</span>
-        <div class="timer__block">
-          <span class="timer__value" id="tSeconds">00</span>
-          <span class="timer__label">secs</span>
-        </div>
-      </div>
-
-      <p class="gate__hint" id="countdownHint">Hang tight… something cute is almost ready.</p>
-
-      <button type="button" id="unlockWishBtn" class="btn btn--primary gate__unlock" hidden>
-        Start your wish ✨
-      </button>
-
-      <button type="button" id="previewBtn" class="btn btn--ghost gate__preview" hidden>
-        Peek early (for testing) 👀
-      </button>
-    </div>
-
-    <div class="gate__toys" aria-hidden="true">
-      <div class="mini-hero">🍜</div>
-      <div class="mini-hero">💕</div>
-      <div class="mini-hero mini-hero--girl">👧</div>
-      <div class="mini-hero">🛍️</div>
-      <div class="mini-hero">✨</div>
-    </div>
-  </section>
-
-  <main id="party" class="party" hidden>
-
-    <section id="welcome" class="scene scene--welcome" aria-labelledby="welcome-title">
-      <canvas id="confettiWelcome" class="confetti-layer" aria-hidden="true"></canvas>
-      <div class="scene__inner">
-        <p class="scene__sparkle">It’s time…</p>
-        <h1 id="welcome-title" class="welcome-title" data-bind="greeting"></h1>
-        <p class="welcome-sub" data-bind="revealSub"></p>
-        <button type="button" id="startCakeBtn" class="btn btn--primary">
-          Start your wish →
-        </button>
-      </div>
-    </section>
-
-    <!-- Cake + LEGO Batwoman -->
-    <section id="cakeScene" class="scene scene--cake" hidden aria-label="Cake cutting">
-      <canvas id="confettiCake" class="confetti-layer" aria-hidden="true"></canvas>
-      <div class="flow-heroes" id="flowHeroes" aria-hidden="true"></div>
-      <div class="cake-balloons" id="cakeBalloons" aria-hidden="true"></div>
-      <div class="cake-twinkles" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-      </div>
-
-      <div class="scene__inner scene__inner--cake">
-        <h2 class="scene__heading cake-heading">Happy Birthday, Zainab 🎂🦇</h2>
-        <p class="cake-intro" id="cakeIntro">Your hero showed up… with cake just for you</p>
-
-        <div class="cake-stage" id="cakeStage">
-          <div class="cake-glow" aria-hidden="true"></div>
-          <div class="cut-sparkles" aria-hidden="true"></div>
-
-          <div class="heroine heroine--lego" id="heroine" aria-hidden="true">
-            <div class="heroine__speech teddy__speech" id="teddySpeech" hidden>
-              <p id="teddySpeechText"></p>
-            </div>
-            <div class="heroine__figure">
-              <img
-                class="heroine__img heroine__lego"
-                src="images/batwoman-lego.png"
-                alt="LEGO Batwoman"
-                draggable="false"
-              />
-              <div class="heroine__arm teddy-arm-r lb-arm-r" aria-hidden="true">
-                <span class="heroine__knife teddy-knife lb-knife" id="teddyKnife"></span>
-              </div>
-            </div>
-            <div class="heroine__shadow"></div>
-          </div>
-
-          <div class="cake" id="birthdayCake" aria-hidden="true">
-            <div class="cake__candles">
-              <span class="candle"><i class="flame"></i><i class="smoke"></i></span>
-              <span class="candle"><i class="flame"></i><i class="smoke"></i></span>
-              <span class="candle"><i class="flame"></i><i class="smoke"></i></span>
-              <span class="candle"><i class="flame"></i><i class="smoke"></i></span>
-            </div>
-            <div class="cake__deco">🍓</div>
-            <div class="cake__frosting">
-              <span class="drip"></span><span class="drip"></span><span class="drip"></span>
-              <span class="drip"></span><span class="drip"></span><span class="drip"></span>
-            </div>
-            <div class="cake__sprinkles" aria-hidden="true"></div>
-            <div class="cake__shine" aria-hidden="true"></div>
-            <div class="cake__body">
-              <div class="cake__whole">
-                <div class="cake__layer cake__layer--top"></div>
-                <div class="cake__cream"></div>
-                <div class="cake__layer cake__layer--mid"></div>
-                <div class="cake__cream"></div>
-                <div class="cake__layer cake__layer--base"></div>
-              </div>
-              <div class="cake__gap"></div>
-              <div class="cake__slice">
-                <div class="cake__layer cake__layer--top"></div>
-                <div class="cake__cream"></div>
-                <div class="cake__layer cake__layer--mid"></div>
-                <div class="cake__cream"></div>
-                <div class="cake__layer cake__layer--base"></div>
-                <div class="cake__slice-frost"></div>
-              </div>
-            </div>
-            <div class="cake__cut-line"></div>
-            <div class="cake__crumbs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="cake__plate"></div>
-          </div>
-        </div>
-
-        <button type="button" id="cutCakeBtn" class="btn btn--primary">
-          Cut Zainab’s birthday cake 🎂
-        </button>
-        <p class="cake-status" id="cakeStatus" aria-live="polite"></p>
-
-        <div class="bday-banner" id="bdayBanner" hidden>
-          <p class="bday-banner__title">🎉 Happy Birthday, Zainab! 🎉</p>
-          <p class="bday-banner__msg">Today is all about you — may it be full of happiness, laughter, love, and beautiful memories. ❤️</p>
-          <p class="bday-banner__sub">This little birthday surprise was made just for you, Zainab 🦇🎂✨</p>
-          <button type="button" id="toHeroesBtn" class="btn btn--primary">
-            Keep the birthday party going →
-          </button>
+  <main id="story" class="story">
+    <!-- Chapter spacers drive camera + overlays -->
+    <section class="chapter" data-chapter="door" id="ch-door">
+      <div class="caption caption--center">
+        <p class="eyebrow">Birthday quest</p>
+        <h1>You’re outside the party room</h1>
+        <p class="sub">Knock twice… your birthday surprise is inside 🎂</p>
+        <div class="knock" id="knockBurst" aria-hidden="true">
+          <span>Knock</span>
+          <span>Knock</span>
         </div>
       </div>
     </section>
 
-    <!-- Heroes celebration -->
-    <section id="heroesScene" class="scene scene--heroes" hidden aria-label="Toy celebration">
-      <canvas id="confettiHeroes" class="confetti-layer" aria-hidden="true"></canvas>
-      <div class="scene__inner scene__inner--wide">
-        <h2 class="scene__heading" data-bind="partyHeading"></h2>
-        <p class="heroes-sub">Everyone came to celebrate Zainab’s birthday 🎉</p>
-
-        <div class="toy-stage" id="toyStage" role="img" aria-label="Birthday girl celebrating with hero toys">
-          <div class="party-floor" aria-hidden="true"></div>
-          <div class="party-lights" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>
-
-          <div class="heroes-row" aria-hidden="true">
-            <div class="hero toy-hulk" style="--i:0">
-              <div class="hero__figure">
-                <div class="hero__hair hero__hair--hulk"></div>
-                <div class="hero__head hero__head--hulk">
-                  <span class="hero__eye"></span><span class="hero__eye"></span>
-                  <span class="hero__grin"></span>
-                </div>
-                <div class="hero__arms"><i class="hero__arm"></i><i class="hero__arm"></i></div>
-                <div class="hero__body hero__body--hulk"></div>
-                <div class="hero__pants hero__pants--hulk"></div>
-                <div class="hero__boots"></div>
-              </div>
-              <span class="hero__label">Hulk</span>
-            </div>
-            <div class="hero toy-thor" style="--i:1">
-              <div class="hero__figure">
-                <div class="hero__cape hero__cape--red"></div>
-                <div class="hero__hair hero__hair--thor"></div>
-                <div class="hero__head hero__head--skin">
-                  <span class="hero__eye"></span><span class="hero__eye"></span>
-                  <span class="hero__smile"></span>
-                </div>
-                <div class="hero__body hero__body--thor"></div>
-                <div class="hero__hammer-prop"></div>
-                <div class="hero__boots"></div>
-              </div>
-              <span class="hero__label">Thor</span>
-            </div>
-            <div class="hero toy-cap" style="--i:2">
-              <div class="hero__figure">
-                <div class="hero__shield-prop"></div>
-                <div class="hero__mask hero__mask--cap">A</div>
-                <div class="hero__head hero__head--skin">
-                  <span class="hero__eye"></span><span class="hero__eye"></span>
-                  <span class="hero__smile"></span>
-                </div>
-                <div class="hero__body hero__body--cap"></div>
-                <div class="hero__boots hero__boots--blue"></div>
-              </div>
-              <span class="hero__label">Cap</span>
-            </div>
-            <div class="hero toy-iron" style="--i:3">
-              <div class="hero__figure">
-                <div class="hero__head hero__head--iron"><span class="hero__visor"></span></div>
-                <div class="hero__body hero__body--iron"><span class="hero__arc"></span></div>
-                <div class="hero__boots hero__boots--gold"></div>
-              </div>
-              <span class="hero__label">Iron Man</span>
-            </div>
-            <div class="hero toy-batman" style="--i:4">
-              <div class="hero__figure">
-                <div class="hero__cape hero__cape--black"></div>
-                <div class="hero__head hero__head--batman">
-                  <span class="hero__ear"></span><span class="hero__ear hero__ear--r"></span>
-                  <span class="hero__bat-eye"></span><span class="hero__bat-eye"></span>
-                </div>
-                <div class="hero__body hero__body--batman"><span class="hero__bat-emblem"></span></div>
-                <div class="hero__boots hero__boots--black"></div>
-              </div>
-              <span class="hero__label">Batman</span>
-            </div>
-          </div>
-
-          <div class="bday-girl" aria-hidden="true">
-            <div class="bday-girl__balloon bday-girl__balloon--l">🎈</div>
-            <div class="bday-girl__balloon bday-girl__balloon--r">🎈</div>
-            <div class="bday-girl__spark s1">✨</div>
-            <div class="bday-girl__spark s2">✨</div>
-            <div class="bday-girl__crown">👑</div>
-            <div class="bday-girl__bun bday-girl__bun--l"></div>
-            <div class="bday-girl__bun bday-girl__bun--r"></div>
-            <div class="bday-girl__hair"></div>
-            <div class="bday-girl__face">
-              <span class="bday-girl__eye"><i></i></span>
-              <span class="bday-girl__eye"><i></i></span>
-              <span class="bday-girl__blush"></span>
-              <span class="bday-girl__blush bday-girl__blush--r"></span>
-              <span class="bday-girl__mouth"></span>
-            </div>
-            <div class="bday-girl__dress">
-              <span class="bday-girl__bow"></span>
-              <span class="bday-girl__heart">♥</span>
-            </div>
-            <div class="bday-girl__legs"><span></span><span></span></div>
-            <div class="bday-girl__shoes"><span></span><span></span></div>
-            <div class="bday-girl__name" data-bind="girlLabel"></div>
-          </div>
-
-          <div class="party-cake-mini" aria-hidden="true">🎂</div>
-          <div class="party-popper" aria-hidden="true">🎊</div>
-        </div>
-
-        <button type="button" id="toMessageBtn" class="btn btn--primary">
-          One soft message →
-        </button>
+    <section class="chapter" data-chapter="enter" id="ch-enter">
+      <div class="caption caption--center">
+        <p class="eyebrow">Party loading…</p>
+        <h2>Welcome in, <span data-first>Zainab</span> 🎂</h2>
+        <p class="sub">Balloons up. Cake ready. Your Marvel LEGO crew is waiting.</p>
       </div>
     </section>
 
-    <section id="message" class="scene scene--message" hidden aria-labelledby="message-title">
-      <div class="scene__inner scene__inner--narrow">
-        <h2 id="message-title" class="scene__heading">Okay… one last thing ❤️</h2>
-        <div class="message-card">
-          <p class="message-card__text" data-bind="heartfeltMessage"></p>
+    <section class="chapter" data-chapter="birthday" id="ch-birthday">
+      <div class="caption caption--center caption--hero">
+        <p class="eyebrow">Big surprise</p>
+        <h2 class="birthday-title">
+          <span>Happy</span>
+          <span>Birthday</span>
+          <span class="birthday-title__name">Zainab</span>
+        </h2>
+        <p class="sub">Confetti mode: ON. Make a wish, birthday girl.</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-chapter="roomtour" id="ch-roomtour">
+      <div class="caption caption--left">
+        <p class="eyebrow">Desk cams</p>
+        <h2>Birthday wishes on the screens</h2>
+        <p class="sub">Every monitor is cheering for you tonight.</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-chapter="party" id="ch-party">
+      <div class="caption caption--center">
+        <p class="eyebrow">Squad assembled</p>
+        <h2>LEGO Marvel heroes around your cake</h2>
+        <p class="sub">Spidey, Iron Man, Hulk, Thor, Cap &amp; friends — all standing by for the slice.</p>
+        <div class="crowd" aria-hidden="true">
+          <span title="Spider-Man">🕷️</span>
+          <span title="Iron Man">🤖</span>
+          <span title="Hulk">💚</span>
+          <span title="Thor">⚡</span>
+          <span title="Cap">🛡️</span>
+          <span title="Party">🎉</span>
         </div>
-        <p class="final-credit">Made with ❤️ just for you.</p>
+      </div>
+    </section>
+
+    <section class="chapter" data-chapter="cut" id="ch-cut">
+      <div class="caption caption--center">
+        <p class="eyebrow">Hero arrival</p>
+        <h2>LEGO Batwoman cuts the cake</h2>
+        <p class="sub">One clean slice for the birthday girl.</p>
+        <div class="cut-stage" id="cutStage">
+          <img class="cut-stage__lego" src="images/batwoman-lego.png" alt="LEGO Batwoman" draggable="false" />
+          <div class="cut-stage__cake" aria-hidden="true">
+            <div class="mini-cake">
+              <div class="mini-cake__candles"><i></i><i></i><i></i></div>
+              <div class="mini-cake__top"></div>
+              <div class="mini-cake__mid"></div>
+              <div class="mini-cake__base"></div>
+              <div class="mini-cake__plate"></div>
+            </div>
+          </div>
+          <div class="cut-stage__spark" aria-hidden="true">✨</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter chapter--finale" data-chapter="finale" id="ch-finale">
+      <div class="caption caption--center caption--finale">
+        <p class="eyebrow">Final quest complete</p>
+        <h2>Happy Birthday, Zainab Aleem</h2>
+        <p class="message">
+          I hope this year brings you happiness, success, peace, and countless reasons to smile.
+          You deserve all the good things coming your way.
+        </p>
+        <p class="credit">Made with love — LEGO heroes, cake &amp; birthday vibes 🦇🎂🎉</p>
       </div>
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

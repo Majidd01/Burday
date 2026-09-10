@@ -1,149 +1,435 @@
 /* ============================================
-   Midnight Birthday Party
-   Customize everything in birthdayData below
+   Gaming Room Birthday Story
+   Three.js room + GSAP ScrollTrigger
    ============================================ */
 
 const birthdayData = {
   name: "Zainab Aleem",
-
-  /**
-   * TEST MODE: unlocks automatically after N minutes from page load
-   * so you can wait and see the full timer → party flow.
-   * Set testMode: false and it will unlock at midnight instead.
-   */
-  testMode: false,
-  testUnlockMinutes: 5,
-
-  /** Used when testMode is false */
-  unlockDateTime: null, // filled with tonight midnight if needed
-
-  allowPreview: true,
-
-  revealSub: "It’s your birthday, Zainab… and your hero brought cake 🎂🦇",
-
-  partyHeading: "Happy Birthday, birthday girl! 🥳",
-
-  heartfeltMessage:
-    "Happy Birthday, Zainab ❤️\n\nI hope this year brings you happiness, success, peace, and countless reasons to smile.\n\nYou deserve all the good things coming your way.\n\nEnjoy your day — it’s all yours.",
-
+  firstName: "Zainab",
   musicSrc: "music/song.wav",
 };
-
-function getTonightMidnightISO() {
-  const d = new Date();
-  d.setHours(24, 0, 0, 0);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T00:00:00`;
-}
-
-function getUnlockISO() {
-  if (birthdayData.testMode) {
-    const d = new Date(Date.now() + birthdayData.testUnlockMinutes * 60 * 1000);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
-  return birthdayData.unlockDateTime || getTonightMidnightISO();
-}
 
 const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)"
 ).matches;
 
 const $ = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-let unlocked = false;
-let countdownId = null;
-let unlockAt = null;
+/* ---------- Canvas helpers: screens + LEGO heroes ---------- */
 
-document.addEventListener("DOMContentLoaded", () => {
-  unlockAt = new Date(getUnlockISO()).getTime();
-  applyConfig();
-  buildStars();
-  initLoader();
-  initMusic();
-  if (!prefersReducedMotion) initParticles();
-  initCountdown();
-  initCakeFlow();
-});
-
-function applyConfig() {
-  const name = birthdayData.name;
-  const map = {
-    greeting: `Happy Birthday, ${name}! 🎂❤️`,
-    revealSub: birthdayData.revealSub,
-    partyHeading: birthdayData.partyHeading.replace(
-      "birthday girl",
-      name.split(" ")[0]
-    ),
-    girlLabel: name.split(" ")[0],
-    heartfeltMessage: birthdayData.heartfeltMessage,
+function makeWishTexture(lines, theme = "cyan") {
+  const c = document.createElement("canvas");
+  c.width = 512;
+  c.height = 320;
+  const ctx = c.getContext("2d");
+  const themes = {
+    cyan: ["#061018", "#0b2a36", "#2de2e6", "#ffffff"],
+    pink: ["#140814", "#3a1028", "#ff2e97", "#ffe3f1"],
+    gold: ["#141006", "#3a2a08", "#ffd166", "#fff6d6"],
+    lime: ["#08140a", "#1a3a12", "#b6ff3b", "#f3ffe0"],
   };
+  const [bg1, bg2, accent, text] = themes[theme] || themes.cyan;
 
-  $$("[data-bind]").forEach((el) => {
-    const key = el.getAttribute("data-bind");
-    if (map[key] != null) el.textContent = map[key];
+  const grad = ctx.createLinearGradient(0, 0, 512, 320);
+  grad.addColorStop(0, bg1);
+  grad.addColorStop(1, bg2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 320);
+
+  // birthday confetti dots
+  for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = i % 2 ? accent : text;
+    ctx.globalAlpha = 0.25 + Math.random() * 0.4;
+    ctx.beginPath();
+    ctx.arc(Math.random() * 512, Math.random() * 320, 2 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 8;
+  ctx.strokeRect(14, 14, 484, 292);
+
+  ctx.fillStyle = accent;
+  ctx.font = "700 22px Outfit, sans-serif";
+  ctx.fillText("🎂 BIRTHDAY STREAM", 36, 56);
+
+  ctx.fillStyle = text;
+  ctx.font = "800 42px Orbitron, sans-serif";
+  let y = 120;
+  lines.forEach((line, idx) => {
+    ctx.font = idx === 0 ? "800 46px Orbitron, sans-serif" : "600 28px Outfit, sans-serif";
+    ctx.fillStyle = idx === 0 ? accent : text;
+    ctx.fillText(line, 36, y);
+    y += idx === 0 ? 58 : 40;
   });
 
-  const audio = $("#bgMusic");
-  if (audio && birthdayData.musicSrc) {
-    audio.src = birthdayData.musicSrc;
-    audio.load();
+  ctx.fillStyle = accent;
+  ctx.globalAlpha = 0.9;
+  ctx.font = "700 20px Outfit, sans-serif";
+  ctx.fillText("Press START to celebrate →", 36, 280);
+  ctx.globalAlpha = 1;
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function makeLegoTexture(hero) {
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 384;
+  const ctx = c.getContext("2d");
+  // transparent bg
+  ctx.clearRect(0, 0, 256, 384);
+
+  const presets = {
+    spidey: {
+      head: "#c62828",
+      torso: "#c62828",
+      torso2: "#1565c0",
+      legs: "#1565c0",
+      arms: "#c62828",
+      hands: "#c62828",
+      eyes: "#ffffff",
+      emblem: null,
+      detail: "web",
+    },
+    ironman: {
+      head: "#c62828",
+      torso: "#c62828",
+      torso2: "#f9a825",
+      legs: "#c62828",
+      arms: "#c62828",
+      hands: "#f9a825",
+      eyes: "#80d8ff",
+      emblem: "arc",
+      detail: null,
+    },
+    hulk: {
+      head: "#43a047",
+      torso: "#43a047",
+      torso2: "#43a047",
+      legs: "#6a1b9a",
+      arms: "#43a047",
+      hands: "#43a047",
+      eyes: "#fff",
+      emblem: null,
+      detail: "angry",
+    },
+    thor: {
+      head: "#ffcc80",
+      hair: "#f9a825",
+      torso: "#37474f",
+      torso2: "#c62828",
+      legs: "#37474f",
+      arms: "#ffcc80",
+      hands: "#ffcc80",
+      eyes: "#222",
+      emblem: "cape",
+      detail: "hammer",
+    },
+    cap: {
+      head: "#ffcc80",
+      torso: "#1565c0",
+      torso2: "#c62828",
+      legs: "#1565c0",
+      arms: "#1565c0",
+      hands: "#ffcc80",
+      eyes: "#222",
+      emblem: "star",
+      detail: "shield",
+    },
+    widow: {
+      head: "#ffcc80",
+      hair: "#212121",
+      torso: "#212121",
+      torso2: "#b71c1c",
+      legs: "#212121",
+      arms: "#212121",
+      hands: "#ffcc80",
+      eyes: "#222",
+      emblem: null,
+      detail: null,
+    },
+    batwoman: {
+      head: "#1a1a1a",
+      hair: "#8b1a1a",
+      torso: "#111111",
+      torso2: "#f5c518",
+      legs: "#111111",
+      arms: "#111111",
+      hands: "#111111",
+      eyes: "#ffffff",
+      emblem: "bat",
+      detail: "cowl",
+    },
+  };
+
+  const p = presets[hero] || presets.spidey;
+  const cx = 128;
+
+  // cape (thor)
+  if (p.emblem === "cape") {
+    ctx.fillStyle = "#c62828";
+    ctx.beginPath();
+    ctx.moveTo(70, 140);
+    ctx.lineTo(40, 300);
+    ctx.lineTo(90, 280);
+    ctx.lineTo(128, 160);
+    ctx.lineTo(166, 280);
+    ctx.lineTo(216, 300);
+    ctx.lineTo(186, 140);
+    ctx.closePath();
+    ctx.fill();
   }
 
-  document.title = `Happy Birthday, ${name} 🎂`;
+  // legs
+  ctx.fillStyle = p.legs;
+  roundRect(ctx, 88, 250, 32, 70, 6);
+  roundRect(ctx, 136, 250, 32, 70, 6);
+  ctx.fillStyle = "#111";
+  roundRect(ctx, 84, 312, 40, 14, 4);
+  roundRect(ctx, 132, 312, 40, 14, 4);
 
-  if (birthdayData.testMode) {
-    const title = $("#gateTitle");
-    const sub = $("#gateSub");
-    if (title) title.textContent = "A little test countdown…";
-    if (sub) {
-      sub.innerHTML = `For testing, this unlocks in <strong>${birthdayData.testUnlockMinutes} minutes</strong> — then the full surprise plays ✨`;
+  // hips / belt
+  ctx.fillStyle = p.torso2 || p.torso;
+  roundRect(ctx, 86, 236, 84, 22, 6);
+
+  // torso
+  ctx.fillStyle = p.torso;
+  ctx.beginPath();
+  ctx.moveTo(86, 140);
+  ctx.lineTo(170, 140);
+  ctx.lineTo(176, 240);
+  ctx.lineTo(80, 240);
+  ctx.closePath();
+  ctx.fill();
+
+  // torso secondary band
+  ctx.fillStyle = p.torso2;
+  ctx.fillRect(86, 190, 84, 18);
+
+  if (p.emblem === "arc") {
+    ctx.fillStyle = "#80d8ff";
+    ctx.beginPath();
+    ctx.arc(cx, 175, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  if (p.emblem === "star") {
+    ctx.fillStyle = "#fff";
+    drawStar(ctx, cx, 175, 5, 14, 6);
+  }
+  if (p.emblem === "bat") {
+    ctx.fillStyle = "#f5c518";
+    ctx.beginPath();
+    ctx.ellipse(cx, 175, 22, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#0a0a0a";
+    ctx.beginPath();
+    ctx.moveTo(cx, 186);
+    ctx.quadraticCurveTo(cx - 18, 168, cx - 26, 162);
+    ctx.quadraticCurveTo(cx - 10, 166, cx - 8, 172);
+    ctx.quadraticCurveTo(cx - 4, 158, cx, 154);
+    ctx.quadraticCurveTo(cx + 4, 158, cx + 8, 172);
+    ctx.quadraticCurveTo(cx + 10, 166, cx + 26, 162);
+    ctx.quadraticCurveTo(cx + 18, 168, cx, 186);
+    ctx.fill();
+  }
+  if (p.detail === "web") {
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(100 + i * 14, 150);
+      ctx.quadraticCurveTo(cx, 190, 100 + i * 14, 230);
+      ctx.stroke();
     }
+  }
+
+  // arms
+  ctx.fillStyle = p.arms;
+  roundRect(ctx, 52, 148, 28, 78, 10);
+  roundRect(ctx, 176, 148, 28, 78, 10);
+  ctx.fillStyle = p.hands;
+  ctx.beginPath();
+  ctx.arc(66, 236, 12, 0, Math.PI * 2);
+  ctx.arc(190, 236, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // neck
+  ctx.fillStyle = p.head;
+  roundRect(ctx, 116, 126, 24, 16, 3);
+
+  // head
+  ctx.fillStyle = p.head;
+  roundRect(ctx, 96, 58, 64, 72, 10);
+
+  // hair
+  if (p.hair) {
+    ctx.fillStyle = p.hair;
+    if (hero === "thor") {
+      roundRect(ctx, 90, 52, 76, 28, 8);
+      ctx.fillRect(88, 70, 14, 50);
+      ctx.fillRect(154, 70, 14, 50);
+    } else {
+      roundRect(ctx, 94, 50, 68, 26, 8);
+      ctx.fillRect(92, 70, 12, 40);
+      ctx.fillRect(152, 70, 12, 40);
+    }
+  }
+
+  // eyes
+  ctx.fillStyle = p.eyes;
+  if (hero === "spidey" || hero === "ironman" || hero === "batwoman") {
+    ctx.beginPath();
+    ctx.ellipse(114, 92, 12, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(142, 92, 12, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
   } else {
-    const title = $("#gateTitle");
-    const sub = $("#gateSub");
-    if (title) title.textContent = "The surprise unlocks at midnight";
-    if (sub) {
-      sub.innerHTML =
-        "When the clock hits <strong>12:00 AM</strong>, the party begins ✨";
-    }
+    ctx.fillRect(110, 88, 10, 10);
+    ctx.fillRect(136, 88, 10, 10);
+    ctx.fillStyle = "#5d4037";
+    ctx.fillRect(118, 112, 20, 4);
   }
 
-  if (birthdayData.allowPreview) {
-    const preview = $("#previewBtn");
-    if (preview) preview.hidden = false;
+  if (p.detail === "cowl") {
+    ctx.fillStyle = "#0a0a0a";
+    ctx.beginPath();
+    ctx.moveTo(104, 52);
+    ctx.lineTo(112, 28);
+    ctx.lineTo(118, 54);
+    ctx.moveTo(152, 52);
+    ctx.lineTo(144, 28);
+    ctx.lineTo(138, 54);
+    ctx.fill();
   }
+
+  if (p.detail === "angry") {
+    ctx.strokeStyle = "#1b5e20";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(108, 82);
+    ctx.lineTo(122, 88);
+    ctx.moveTo(148, 82);
+    ctx.lineTo(134, 88);
+    ctx.stroke();
+  }
+
+  // shield for cap
+  if (p.detail === "shield") {
+    ctx.fillStyle = "#c62828";
+    ctx.beginPath();
+    ctx.arc(198, 200, 28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1565c0";
+    ctx.beginPath();
+    ctx.arc(198, 200, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    drawStar(ctx, 198, 200, 5, 10, 4);
+  }
+
+  // hammer for thor
+  if (p.detail === "hammer") {
+    ctx.fillStyle = "#90a4ae";
+    roundRect(ctx, 198, 200, 36, 22, 3);
+    ctx.fillStyle = "#6d4c41";
+    roundRect(ctx, 210, 222, 10, 40, 2);
+  }
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
 }
 
-function buildStars() {
-  const sky = $("#gateSky");
-  if (!sky) return;
-  const frag = document.createDocumentFragment();
-  for (let i = 0; i < 48; i++) {
-    const s = document.createElement("span");
-    s.className = "star";
-    const size = 1.5 + Math.random() * 3.5;
-    s.style.width = `${size}px`;
-    s.style.height = `${size}px`;
-    s.style.left = `${Math.random() * 100}%`;
-    s.style.top = `${Math.random() * 72}%`;
-    s.style.animationDelay = `${Math.random() * 3}s`;
-    s.style.animationDuration = `${1.8 + Math.random() * 2.4}s`;
-    if (Math.random() > 0.82) s.classList.add("star--bright");
-    frag.appendChild(s);
-  }
-  sky.insertBefore(frag, sky.firstChild);
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+  ctx.fill();
 }
 
-function initLoader() {
-  document.body.classList.add("is-locked");
-  const loader = $("#loader");
-  const wait = prefersReducedMotion ? 250 : 900;
+function drawStar(ctx, x, y, spikes, outer, inner) {
+  let rot = (Math.PI / 2) * 3;
+  let cx = x;
+  let cy = y;
+  const step = Math.PI / spikes;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outer);
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * outer, cy + Math.sin(rot) * outer);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * inner, cy + Math.sin(rot) * inner);
+    rot += step;
+  }
+  ctx.lineTo(cx, cy - outer);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function makeBalloonMesh(color) {
+  const g = new THREE.Group();
+  const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(0.18, 16, 16),
+    new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.25,
+      roughness: 0.35,
+    })
+  );
+  ball.scale.y = 1.15;
+  g.add(ball);
+  const string = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.008, 0.008, 0.55, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+  );
+  string.position.y = -0.45;
+  g.add(string);
+  return g;
+}
+
+/* ---------- Boot ---------- */
+
+document.addEventListener("DOMContentLoaded", async () => {
+  document.body.classList.add("is-loading");
+  applyCopy();
+  initMusic();
+
+  const room = await initRoom();
+  if (!prefersReducedMotion) {
+    initStory(room);
+  } else {
+    initReducedStory(room);
+  }
+
   window.setTimeout(() => {
-    loader?.classList.add("is-done");
-    loader?.setAttribute("aria-busy", "false");
-  }, wait);
+    $("#loader")?.classList.add("is-done");
+    $("#loader")?.setAttribute("aria-busy", "false");
+    document.body.classList.remove("is-loading");
+  }, prefersReducedMotion ? 200 : 900);
+});
+
+function applyCopy() {
+  document.querySelectorAll("[data-first]").forEach((el) => {
+    el.textContent = birthdayData.firstName;
+  });
+  const titleName = $(".birthday-title__name");
+  if (titleName) titleName.textContent = birthdayData.firstName;
+  const finaleH2 = $("#ch-finale h2");
+  if (finaleH2) finaleH2.textContent = `Happy Birthday, ${birthdayData.name}`;
+  document.title = `Happy Birthday, ${birthdayData.firstName} 🎂`;
 }
 
 /* ---------- Music ---------- */
@@ -153,512 +439,746 @@ function initMusic() {
   const audio = $("#bgMusic");
   if (!btn || !audio) return;
 
-  const candidates = [
-    birthdayData.musicSrc,
-    "music/song.wav",
-    "music/song.mp3",
-  ].filter(Boolean);
-
-  let srcIndex = 0;
-  const tryLoad = () => {
-    if (srcIndex >= candidates.length) return;
-    audio.src = candidates[srcIndex];
+  if (birthdayData.musicSrc) {
+    audio.src = birthdayData.musicSrc;
     audio.load();
-  };
-  tryLoad();
-  audio.addEventListener("error", () => {
-    srcIndex += 1;
-    tryLoad();
-  });
+  }
 
   const setPlaying = (on) => {
     btn.setAttribute("aria-pressed", on ? "true" : "false");
-    btn.setAttribute(
-      "aria-label",
-      on ? "Pause background music" : "Play background music"
-    );
-    btn.classList.toggle("is-playing", on);
+    btn.setAttribute("aria-label", on ? "Pause music" : "Play music");
   };
 
   btn.addEventListener("click", async () => {
     try {
       if (audio.paused) {
-        audio.volume = 0.55;
+        audio.volume = 0.5;
         await audio.play();
         setPlaying(true);
       } else {
         audio.pause();
         setPlaying(false);
       }
-    } catch (err) {
-      console.warn("Music play failed:", err);
-      try {
-        playFallbackChime();
-        setPlaying(true);
-        window.setTimeout(() => setPlaying(false), 1800);
-      } catch {
-        setPlaying(false);
-      }
+    } catch {
+      setPlaying(false);
     }
   });
-
-  audio.addEventListener("pause", () => setPlaying(false));
-  audio.addEventListener("play", () => setPlaying(true));
 }
 
-function playFallbackChime() {
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  if (!Ctx) return;
-  const ctx = new Ctx();
-  [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    gain.gain.value = 0.0001;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const t = ctx.currentTime + i * 0.18;
-    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-    osc.start(t);
-    osc.stop(t + 0.4);
+/* ---------- Three.js gaming room ---------- */
+
+async function initRoom() {
+  const canvas = $("#room");
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x07090f, 0.045);
+
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
+  const isTiny = window.matchMedia("(max-width: 480px)").matches;
+
+  const camera = new THREE.PerspectiveCamera(
+    isMobile ? 62 : 55,
+    window.innerWidth / Math.max(window.innerHeight, 1),
+    0.1,
+    100
+  );
+  camera.position.set(0, 1.5, isMobile ? 9.2 : 8.5);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: !isMobile,
+    alpha: false,
+    powerPreference: isMobile ? "low-power" : "high-performance",
   });
-}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x07090f, 1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-/* ---------- Countdown ---------- */
+  // Lights
+  scene.add(new THREE.AmbientLight(0x6a7a9a, 0.35));
+  const key = new THREE.DirectionalLight(0xffffff, 0.55);
+  key.position.set(2, 6, 4);
+  scene.add(key);
 
-function initCountdown() {
-  $("#previewBtn")?.addEventListener("click", () => unlockParty("preview"));
-  $("#unlockWishBtn")?.addEventListener("click", () => unlockParty("wish"));
-  tickCountdown();
-  countdownId = window.setInterval(tickCountdown, 250);
-}
+  const cyan = new THREE.PointLight(0x2de2e6, 2.2, 14);
+  cyan.position.set(-2.2, 2.2, -1);
+  scene.add(cyan);
 
-function showUnlockButton() {
-  const unlockBtn = $("#unlockWishBtn");
-  const preview = $("#previewBtn");
-  const hint = $("#countdownHint");
-  if (unlockBtn) {
-    unlockBtn.hidden = false;
-    unlockBtn.classList.add("is-ready");
-  }
-  if (preview) preview.hidden = true;
-  if (hint) {
-    hint.textContent = "Timer done! Tap below to start your wish 💫";
-  }
-  $("#gateTitle") && ($("#gateTitle").textContent = "Your surprise is ready");
-  $("#gateSub") &&
-    ($("#gateSub").innerHTML =
-      "The wait is over — make a wish and continue ✨");
-}
+  const magenta = new THREE.PointLight(0xff2e97, 1.8, 12);
+  magenta.position.set(2.4, 1.8, 0.5);
+  scene.add(magenta);
 
-function tickCountdown() {
-  const diff = unlockAt - Date.now();
+  const gold = new THREE.PointLight(0xffd166, 1.2, 8);
+  gold.position.set(0, 1.6, -1.8);
+  scene.add(gold);
 
-  if (diff <= 0) {
-    updateTimerDisplay(0, 0, 0);
-    if (countdownId) {
-      window.clearInterval(countdownId);
-      countdownId = null;
-    }
-    // Don't auto-jump — show a clear button to start & move next
-    if (!unlocked) showUnlockButton();
-    return;
-  }
+  // Room shell
+  const roomGroup = new THREE.Group();
+  scene.add(roomGroup);
 
-  const totalSec = Math.floor(diff / 1000);
-  const hours = Math.floor(totalSec / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const seconds = totalSec % 60;
-  updateTimerDisplay(hours, minutes, seconds);
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0x121826,
+    roughness: 0.88,
+    metalness: 0.1,
+  });
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x0b0e16,
+    roughness: 0.75,
+    metalness: 0.2,
+  });
+  const accentMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2236,
+    roughness: 0.6,
+    metalness: 0.25,
+  });
 
-  const hint = $("#countdownHint");
-  if (hours === 0 && minutes < 2) {
-    hint.textContent = "Almost there… get ready! ✨";
-  }
-}
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 14), floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  roomGroup.add(floor);
 
-function updateTimerDisplay(hours, minutes = 0, seconds = 0) {
-  const pad = (n) => String(n).padStart(2, "0");
-  const h = $("#tHours");
-  const m = $("#tMinutes");
-  const s = $("#tSeconds");
-  if (h) h.textContent = pad(hours);
-  if (m) m.textContent = pad(minutes);
-  if (s) s.textContent = pad(seconds);
-}
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(12, 14), wallMat);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = 3.2;
+  roomGroup.add(ceiling);
 
-function unlockParty(reason) {
-  if (unlocked) return;
-  unlocked = true;
-  if (countdownId) window.clearInterval(countdownId);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(12, 3.2), wallMat);
+  back.position.set(0, 1.6, -5);
+  roomGroup.add(back);
 
-  const gate = $("#countdownGate");
-  const party = $("#party");
-  const welcome = $("#welcome");
+  const left = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.2), wallMat);
+  left.rotation.y = Math.PI / 2;
+  left.position.set(-6, 1.6, 0);
+  roomGroup.add(left);
 
-  gate?.classList.add("is-leaving");
+  const right = new THREE.Mesh(new THREE.PlaneGeometry(14, 3.2), wallMat);
+  right.rotation.y = -Math.PI / 2;
+  right.position.set(6, 1.6, 0);
+  roomGroup.add(right);
 
-  window.setTimeout(
-    () => {
-      if (gate) gate.style.display = "none";
-      if (party) party.hidden = false;
-      if (welcome) welcome.hidden = false;
-      document.body.classList.remove("is-locked");
-      burstConfetti($("#confettiWelcome"), prefersReducedMotion ? 28 : 110);
-      window.scrollTo({ top: 0, behavior: "auto" });
+  // LED strips
+  const ledGeo = new THREE.BoxGeometry(0.06, 0.06, 8);
+  const ledCyan = new THREE.Mesh(
+    ledGeo,
+    new THREE.MeshStandardMaterial({
+      color: 0x2de2e6,
+      emissive: 0x2de2e6,
+      emissiveIntensity: 2.4,
+    })
+  );
+  ledCyan.position.set(-5.7, 2.7, -1);
+  roomGroup.add(ledCyan);
+
+  const ledMagenta = ledCyan.clone();
+  ledMagenta.material = new THREE.MeshStandardMaterial({
+    color: 0xff2e97,
+    emissive: 0xff2e97,
+    emissiveIntensity: 2.2,
+  });
+  ledMagenta.position.set(5.7, 2.7, -1);
+  roomGroup.add(ledMagenta);
+
+  // Door (outside start)
+  const doorGroup = new THREE.Group();
+  doorGroup.position.set(0, 0, 5.8);
+  roomGroup.add(doorGroup);
+
+  const doorFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.2, 3, 0.25),
+    accentMat
+  );
+  doorFrame.position.y = 1.5;
+  doorGroup.add(doorFrame);
+
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(1.8, 2.6, 0.12),
+    new THREE.MeshStandardMaterial({
+      color: 0x24304a,
+      roughness: 0.45,
+      metalness: 0.35,
+    })
+  );
+  door.position.set(0, 1.35, 0.1);
+  doorGroup.add(door);
+
+  const knob = new THREE.Mesh(
+    new THREE.SphereGeometry(0.07, 16, 16),
+    new THREE.MeshStandardMaterial({
+      color: 0xffd166,
+      emissive: 0xffd166,
+      emissiveIntensity: 0.6,
+      metalness: 0.8,
+      roughness: 0.25,
+    })
+  );
+  knob.position.set(0.7, 1.3, 0.2);
+  doorGroup.add(knob);
+
+  // Gaming desk + birthday wish monitors
+  const desk = new THREE.Mesh(
+    new THREE.BoxGeometry(3.2, 0.12, 1.1),
+    new THREE.MeshStandardMaterial({ color: 0x171c2a, roughness: 0.4, metalness: 0.3 })
+  );
+  desk.position.set(-2.4, 0.85, -3.4);
+  roomGroup.add(desk);
+
+  const wishScreens = [
+    {
+      x: -3.05,
+      y: 1.48,
+      z: -3.52,
+      theme: "pink",
+      lines: ["Happy Birthday", birthdayData.firstName + "!", "Party mode unlocked"],
     },
-    prefersReducedMotion ? 80 : 650
-  );
+    {
+      x: -1.85,
+      y: 1.48,
+      z: -3.52,
+      theme: "cyan",
+      lines: ["Make a wish ✨", "Cake loading…", "Heroes standing by"],
+    },
+  ];
 
-  void reason;
-}
-
-/* ---------- Cake + Teddy flow ---------- */
-
-function initCakeFlow() {
-  $("#startCakeBtn")?.addEventListener("click", () => {
-    $("#welcome").hidden = true;
-    const cake = $("#cakeScene");
-    cake.hidden = false;
-    cake.classList.add("is-entering");
-    startFlowingHeroes();
-    cake.scrollIntoView({
-      behavior: prefersReducedMotion ? "auto" : "smooth",
-      block: "start",
-    });
-  });
-
-  $("#cutCakeBtn")?.addEventListener("click", runTeddySequence);
-
-  $("#toHeroesBtn")?.addEventListener("click", () => {
-    $("#cakeScene").hidden = true;
-    showScene("heroesScene");
-    const stage = $("#toyStage");
-    stage?.classList.remove("is-partying");
-    void stage?.offsetWidth;
-    stage?.classList.add("is-partying");
-    burstConfetti($("#confettiHeroes"), prefersReducedMotion ? 36 : 130, true);
-  });
-
-  $("#toMessageBtn")?.addEventListener("click", () => {
-    $("#heroesScene").hidden = true;
-    showScene("message");
-  });
-}
-
-function showScene(id) {
-  const el = $(`#${id}`);
-  if (!el) return;
-  el.hidden = false;
-  el.scrollIntoView({
-    behavior: prefersReducedMotion ? "auto" : "smooth",
-    block: "start",
-  });
-}
-
-function wait(ms) {
-  return new Promise((resolve) =>
-    window.setTimeout(resolve, prefersReducedMotion ? Math.min(ms, 120) : ms)
-  );
-}
-
-async function showSpeech(text, ms = 2200) {
-  const bubble = $("#teddySpeech");
-  const label = $("#teddySpeechText");
-  if (!bubble || !label) return;
-  label.textContent = text;
-  bubble.hidden = false;
-  bubble.classList.remove("is-out");
-  bubble.classList.add("is-in");
-  await wait(ms);
-  bubble.classList.remove("is-in");
-  bubble.classList.add("is-out");
-  await wait(350);
-  bubble.hidden = true;
-}
-
-async function runTeddySequence() {
-  const stage = $("#cakeStage");
-  const btn = $("#cutCakeBtn");
-  const status = $("#cakeStatus");
-  const banner = $("#bdayBanner");
-
-  if (!stage || stage.classList.contains("is-done")) return;
-
-  btn.disabled = true;
-  btn.style.display = "none";
-  status.textContent = "Here comes your birthday hero… 🦇";
-
-  stage.className = "cake-stage";
-  void stage.offsetWidth;
-
-  stage.classList.add("is-walking");
-  await wait(2200);
-
-  stage.classList.remove("is-walking");
-  stage.classList.add("is-beside", "is-looking");
-  status.textContent = "Birthday cake for Zainab… ready!";
-  await wait(1100);
-
-  stage.classList.add("is-knife");
-  status.textContent = "Time to cut your cake…";
-  await wait(750);
-
-  stage.classList.add("is-cutting");
-  status.textContent = "Make a birthday wish, Zainab… ✨";
-  await wait(1000);
-
-  stage.classList.add("is-blown");
-  await wait(350);
-
-  stage.classList.add("is-sliced", "is-sparkle");
-  burstConfetti($("#confettiCake"), prefersReducedMotion ? 28 : 90);
-  status.textContent = "Happy Birthday slice secured! 🍰🎉";
-  await wait(1000);
-
-  stage.classList.add("is-celebrate");
-  await wait(600);
-
-  await showSpeech("Happy Birthday, Zainab! 🎂🎉", 2200);
-  await showSpeech("This whole cake is for you 🦇❤️", 2400);
-
-  stage.classList.add("is-done");
-  if (banner) {
-    banner.hidden = false;
-    banner.classList.add("is-show");
-  }
-  status.textContent = "";
-}
-
-/* ---------- Flowing Marvel icons + balloons ---------- */
-
-const MARVEL_ICONS = [
-  "🛡️", "⚡", "🤖", "💚", "🕷️", "🦇", "🏹", "🔴", "🟣", "❄️", "🪄", "🦸", "🦸‍♀️", "💥", "✨", "⭐",
-];
-const BALLOON_EMOJIS = ["🎈", "🎈", "🎈", "🎀", "💕", "🩷", "💜", "🎉"];
-let flowTimer = null;
-let balloonTimer = null;
-
-function startFlowingHeroes() {
-  const layer = $("#flowHeroes");
-  const balloons = $("#cakeBalloons");
-  if (flowTimer) window.clearInterval(flowTimer);
-  if (balloonTimer) window.clearInterval(balloonTimer);
-  if (layer) layer.innerHTML = "";
-  if (balloons) balloons.innerHTML = "";
-  if (prefersReducedMotion) return;
-
-  const spawnIcon = () => {
-    if (!layer || layer.childElementCount > 22) return;
-    const el = document.createElement("span");
-    el.className = "flow-icon";
-    el.textContent = MARVEL_ICONS[(Math.random() * MARVEL_ICONS.length) | 0];
-    const fromLeft = Math.random() > 0.5;
-    const size = 1.05 + Math.random() * 1.25;
-    el.style.fontSize = `${size}rem`;
-    el.style.left = fromLeft
-      ? `${2 + Math.random() * 18}%`
-      : `${76 + Math.random() * 18}%`;
-    el.style.top = `${108 + Math.random() * 22}%`;
-    el.style.setProperty("--drift", `${(-50 + Math.random() * 100).toFixed(0)}px`);
-    el.style.setProperty("--spin", `${(-30 + Math.random() * 60).toFixed(0)}deg`);
-    el.style.animationDuration = `${5.5 + Math.random() * 5}s`;
-    layer.appendChild(el);
-    el.addEventListener("animationend", () => el.remove());
+  // Third wide TV on back wall
+  const wallWish = {
+    x: 2.2,
+    y: 2.0,
+    z: -4.85,
+    w: 2.4,
+    h: 1.2,
+    theme: "gold",
+    lines: ["HBD " + birthdayData.firstName, "Best year loading…", "From your squad 🎉"],
   };
 
-  const spawnBalloon = () => {
-    if (!balloons || balloons.childElementCount > 16) return;
-    const el = document.createElement("span");
-    el.className = "cake-balloon";
-    el.textContent = BALLOON_EMOJIS[(Math.random() * BALLOON_EMOJIS.length) | 0];
-    el.style.left = `${4 + Math.random() * 88}%`;
-    el.style.setProperty("--size", `${1.35 + Math.random() * 1.4}rem`);
-    el.style.setProperty("--dur", `${7 + Math.random() * 6}s`);
-    el.style.setProperty(
-      "--sway",
-      `${(Math.random() > 0.5 ? 1 : -1) * (18 + Math.random() * 36)}px`
+  const makeMonitor = (cfg) => {
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(1.15, 0.75, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x0a0c12, roughness: 0.35 })
     );
-    balloons.appendChild(el);
-    el.addEventListener("animationend", () => el.remove());
+    frame.position.set(cfg.x, cfg.y, cfg.z);
+    roomGroup.add(frame);
+
+    const tex = makeWishTexture(cfg.lines, cfg.theme);
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.0, 0.58),
+      new THREE.MeshStandardMaterial({
+        map: tex,
+        emissiveMap: tex,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.85,
+        roughness: 0.35,
+      })
+    );
+    screen.position.set(cfg.x, cfg.y, cfg.z + 0.05);
+    roomGroup.add(screen);
+  };
+  wishScreens.forEach(makeMonitor);
+
+  // Wall birthday display
+  {
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(wallWish.w + 0.12, wallWish.h + 0.12, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x0a0c12 })
+    );
+    frame.position.set(wallWish.x, wallWish.y, wallWish.z);
+    roomGroup.add(frame);
+    const tex = makeWishTexture(wallWish.lines, wallWish.theme);
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(wallWish.w, wallWish.h),
+      new THREE.MeshStandardMaterial({
+        map: tex,
+        emissiveMap: tex,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.9,
+      })
+    );
+    screen.position.set(wallWish.x, wallWish.y, wallWish.z + 0.05);
+    roomGroup.add(screen);
+  }
+
+  // Birthday banner above door exit into room
+  {
+    const bannerTex = makeWishTexture(
+      ["🎉 HAPPY BIRTHDAY", birthdayData.firstName.toUpperCase(), "Let the party begin"],
+      "lime"
+    );
+    const banner = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 0.7),
+      new THREE.MeshStandardMaterial({
+        map: bannerTex,
+        emissiveMap: bannerTex,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.7,
+      })
+    );
+    banner.position.set(0, 2.7, -4.9);
+    roomGroup.add(banner);
+  }
+
+  // RGB tower
+  const tower = new THREE.Mesh(
+    new THREE.BoxGeometry(0.45, 1.1, 0.55),
+    new THREE.MeshStandardMaterial({ color: 0x101522, metalness: 0.5, roughness: 0.3 })
+  );
+  tower.position.set(-4.1, 0.9, -3.2);
+  roomGroup.add(tower);
+  const towerGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.9, 0.08),
+    new THREE.MeshStandardMaterial({
+      color: 0xb6ff3b,
+      emissive: 0xb6ff3b,
+      emissiveIntensity: 2,
+    })
+  );
+  towerGlow.position.set(-3.9, 0.9, -2.9);
+  roomGroup.add(towerGlow);
+
+  // Party table + cake
+  const table = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.15, 1.2, 0.12, 32),
+    new THREE.MeshStandardMaterial({ color: 0x222a3d, roughness: 0.45, metalness: 0.25 })
+  );
+  table.position.set(1.4, 0.85, -1.2);
+  roomGroup.add(table);
+
+  const tableLeg = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.16, 0.85, 12),
+    accentMat
+  );
+  tableLeg.position.set(1.4, 0.4, -1.2);
+  roomGroup.add(tableLeg);
+
+  const cakeGroup = new THREE.Group();
+  cakeGroup.position.set(1.4, 0.95, -1.2);
+  roomGroup.add(cakeGroup);
+
+  const cakeWhole = new THREE.Group();
+  const cakeSlice = new THREE.Group();
+  cakeGroup.add(cakeWhole);
+  cakeGroup.add(cakeSlice);
+
+  const addLayer = (parent, r, h, y, color, start = 0, end = Math.PI * 2) => {
+    const m = new THREE.Mesh(
+      new THREE.CylinderGeometry(r, r * 1.02, h, 24, 1, false, start, end - start),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.55, side: THREE.DoubleSide })
+    );
+    m.position.y = y;
+    parent.add(m);
+    return m;
   };
 
-  for (let i = 0; i < 8; i++) window.setTimeout(spawnIcon, i * 220);
-  for (let i = 0; i < 10; i++) window.setTimeout(spawnBalloon, i * 180);
-  flowTimer = window.setInterval(spawnIcon, 520);
-  balloonTimer = window.setInterval(spawnBalloon, 650);
-}
+  // Whole cake (3/4) + slice (1/4) so they can split on cut
+  const almost = Math.PI * 1.5;
+  addLayer(cakeWhole, 0.32, 0.16, 0.08, 0xff4d8d, 0, almost);
+  addLayer(cakeWhole, 0.26, 0.14, 0.22, 0xffd166, 0, almost);
+  addLayer(cakeWhole, 0.2, 0.12, 0.34, 0xff7eb3, 0, almost);
 
-/* ---------- Confetti ---------- */
+  addLayer(cakeSlice, 0.32, 0.16, 0.08, 0xff4d8d, almost, Math.PI * 2);
+  addLayer(cakeSlice, 0.26, 0.14, 0.22, 0xffd166, almost, Math.PI * 2);
+  addLayer(cakeSlice, 0.2, 0.12, 0.34, 0xff7eb3, almost, Math.PI * 2);
 
-function burstConfetti(canvas, count = 80, longer = false) {
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  // Inner frosting faces on the cut
+  const frostMat = new THREE.MeshStandardMaterial({ color: 0xffe4ec, roughness: 0.7 });
+  const frost = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.42), frostMat);
+  frost.position.set(0.02, 0.22, 0.01);
+  frost.rotation.y = almost;
+  cakeWhole.add(frost);
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const { width, height } = canvas.getBoundingClientRect();
-  canvas.width = Math.max(1, Math.floor(width * dpr));
-  canvas.height = Math.max(1, Math.floor(height * dpr));
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  const colors = ["#ff7eb3", "#ffd76a", "#c4a1ff", "#ff4d8d", "#fff6fb", "#67e8f9"];
-  const pieces = Array.from({ length: count }, () => ({
-    x: Math.random() * width,
-    y: -20 - Math.random() * 60,
-    w: 4 + Math.random() * 6,
-    h: 6 + Math.random() * 8,
-    vx: -1.6 + Math.random() * 3.2,
-    vy: 2 + Math.random() * 3.2,
-    rot: Math.random() * Math.PI,
-    vr: -0.14 + Math.random() * 0.28,
-    color: colors[(Math.random() * colors.length) | 0],
-    heart: Math.random() > 0.7,
-  }));
-
-  const start = performance.now();
-  const duration = longer ? 4000 : 2600;
-
-  function drawHeart(x, y, size) {
-    ctx.beginPath();
-    ctx.moveTo(x, y + size * 0.3);
-    ctx.bezierCurveTo(x, y, x - size, y, x - size, y + size * 0.35);
-    ctx.bezierCurveTo(
-      x - size,
-      y + size * 0.75,
-      x,
-      y + size * 1.1,
-      x,
-      y + size * 1.2
+  const flames = [];
+  for (let i = 0; i < 4; i++) {
+    const candle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.015, 0.14, 8),
+      new THREE.MeshStandardMaterial({ color: 0xfff1b8 })
     );
-    ctx.bezierCurveTo(
-      x,
-      y + size * 1.1,
-      x + size,
-      y + size * 0.75,
-      x + size,
-      y + size * 0.35
+    const a = (i / 4) * Math.PI * 2;
+    candle.position.set(Math.cos(a) * 0.08, 0.48, Math.sin(a) * 0.08);
+    cakeGroup.add(candle);
+    const flame = new THREE.Mesh(
+      new THREE.SphereGeometry(0.025, 8, 8),
+      new THREE.MeshStandardMaterial({
+        color: 0xff7a3d,
+        emissive: 0xff7a3d,
+        emissiveIntensity: 2.5,
+      })
     );
-    ctx.bezierCurveTo(x + size, y, x, y, x, y + size * 0.3);
-    ctx.fill();
+    flame.position.set(Math.cos(a) * 0.08, 0.58, Math.sin(a) * 0.08);
+    cakeGroup.add(flame);
+    flames.push(flame);
   }
 
-  function frame(now) {
-    const elapsed = now - start;
-    ctx.clearRect(0, 0, width, height);
-    pieces.forEach((p) => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.04;
-      p.rot += p.vr;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
-      ctx.globalAlpha = Math.max(0, 1 - elapsed / duration);
-      ctx.fillStyle = p.color;
-      if (p.heart) drawHeart(0, 0, p.w * 0.7);
-      else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      ctx.restore();
+  // Knife (shown during cut)
+  const knife = new THREE.Group();
+  const blade = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.02, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0xdce3ec, metalness: 0.85, roughness: 0.2 })
+  );
+  blade.position.x = 0.12;
+  knife.add(blade);
+  const handle = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.035, 0.035),
+    new THREE.MeshStandardMaterial({ color: 0x6d4c41 })
+  );
+  handle.position.x = -0.06;
+  knife.add(handle);
+  knife.position.set(0.15, 0.55, 0.35);
+  knife.visible = false;
+  cakeGroup.add(knife);
+
+  // LEGO Batwoman cutter — walks in and cuts on scroll
+  const cutterMat = new THREE.SpriteMaterial({
+    map: makeLegoTexture("batwoman"),
+    transparent: true,
+    depthWrite: false,
+  });
+  const cutter = new THREE.Sprite(cutterMat);
+  cutter.scale.set(isMobile ? 0.92 : 1.05, isMobile ? 1.35 : 1.55, 1);
+  const cutterStart = new THREE.Vector3(3.2, 0.9, 0.4);
+  const cutterEnd = new THREE.Vector3(1.85, 0.9, -0.55);
+  cutter.position.copy(cutterStart);
+  roomGroup.add(cutter);
+
+  // Prefer real Batwoman PNG if available
+  new THREE.TextureLoader().load(
+    "images/batwoman-lego.png",
+    (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      cutter.material.map = tex;
+      cutter.material.needsUpdate = true;
+    },
+    undefined,
+    () => {}
+  );
+
+  let cutProgress = 0;
+  let setCutProgress = () => {};
+
+  // Standing LEGO Marvel heroes around the cake
+  const heroes = ["spidey", "ironman", "hulk", "thor", "cap", "widow"];
+  const legoGuests = [];
+  const guestScale = isMobile ? 0.82 : 0.95;
+  heroes.forEach((hero, i) => {
+    const ang = (i / heroes.length) * Math.PI * 2 + 0.2;
+    const tex = makeLegoTexture(hero);
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
     });
-    if (elapsed < duration) requestAnimationFrame(frame);
-    else ctx.clearRect(0, 0, width, height);
-  }
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(guestScale, guestScale * 1.47, 1);
+    sprite.position.set(
+      1.4 + Math.cos(ang) * 1.85,
+      0.85,
+      -1.2 + Math.sin(ang) * 1.85
+    );
+    sprite.userData.baseY = 0.85;
+    sprite.userData.phase = i * 0.7;
+    roomGroup.add(sprite);
+    legoGuests.push(sprite);
+  });
 
-  if (prefersReducedMotion) {
-    pieces.slice(0, 10).forEach((p) => {
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = 0.75;
-      ctx.fillRect(p.x, height * 0.25, p.w, p.h);
+  setCutProgress = (t) => {
+    cutProgress = Math.min(1, Math.max(0, t));
+    const walk = THREE.MathUtils.smoothstep(cutProgress, 0, 0.35);
+    cutter.position.lerpVectors(cutterStart, cutterEnd, walk);
+    cutter.position.y = 0.9 + Math.sin(walk * Math.PI) * 0.05;
+
+    const raise = THREE.MathUtils.smoothstep(cutProgress, 0.3, 0.55);
+    knife.visible = raise > 0.05;
+    knife.position.set(
+      0.2 - raise * 0.05,
+      0.7 - raise * 0.28,
+      0.4 - raise * 0.4
+    );
+    knife.rotation.z = -0.5 + raise * 1.35;
+
+    const sliceT = THREE.MathUtils.smoothstep(cutProgress, 0.45, 0.9);
+    cakeSlice.position.set(sliceT * 0.5, sliceT * 0.14, sliceT * 0.22);
+    cakeSlice.rotation.z = sliceT * 0.4;
+    cakeWhole.rotation.z = -sliceT * 0.05;
+
+    const blow = THREE.MathUtils.smoothstep(cutProgress, 0.5, 0.72);
+    flames.forEach((f) => {
+      f.scale.setScalar(Math.max(0.01, 1 - blow));
+      f.material.emissiveIntensity = 2.5 * (1 - blow);
+      f.visible = blow < 0.98;
     });
-    window.setTimeout(() => ctx.clearRect(0, 0, width, height), 500);
-    return;
+
+    legoGuests.forEach((s, i) => {
+      if (cutProgress > 0.45) {
+        s.position.y =
+          s.userData.baseY + Math.abs(Math.sin(cutProgress * 14 + i)) * 0.1;
+      }
+    });
+  };
+
+  // Balloons around the room
+  const balloonColors = [0xff2e97, 0x2de2e6, 0xffd166, 0xb6ff3b, 0xff7eb3, 0xa78bfa];
+  const balloons = [];
+  const balloonCount = isTiny ? 7 : isMobile ? 10 : 14;
+  for (let i = 0; i < balloonCount; i++) {
+    const b = makeBalloonMesh(balloonColors[i % balloonColors.length]);
+    b.position.set(
+      (Math.random() - 0.5) * 8,
+      1.6 + Math.random() * 1.2,
+      (Math.random() - 0.5) * 7
+    );
+    b.userData.baseY = b.position.y;
+    b.userData.phase = Math.random() * Math.PI * 2;
+    roomGroup.add(b);
+    balloons.push(b);
   }
 
-  requestAnimationFrame(frame);
-}
+  // Floating confetti particles
+  const confettiCount = isTiny ? 40 : isMobile ? 70 : 120;
+  const confetti = new THREE.Group();
+  const confettiMats = [
+    new THREE.MeshBasicMaterial({ color: 0x2de2e6 }),
+    new THREE.MeshBasicMaterial({ color: 0xff2e97 }),
+    new THREE.MeshBasicMaterial({ color: 0xffd166 }),
+    new THREE.MeshBasicMaterial({ color: 0xb6ff3b }),
+    new THREE.MeshBasicMaterial({ color: 0xffffff }),
+  ];
+  for (let i = 0; i < confettiCount; i++) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.05, 0.01),
+      confettiMats[i % confettiMats.length]
+    );
+    mesh.position.set(
+      (Math.random() - 0.5) * 10,
+      Math.random() * 3,
+      (Math.random() - 0.5) * 10
+    );
+    mesh.userData.speed = 0.2 + Math.random() * 0.5;
+    mesh.userData.spin = (Math.random() - 0.5) * 2;
+    confetti.add(mesh);
+  }
+  scene.add(confetti);
 
-/* ---------- Particles ---------- */
+  // Camera path targets (scroll progress 0→1)
+  const zPush = isMobile ? 0.55 : 0;
+  const cameraPath = [
+    { p: new THREE.Vector3(0, 1.45, 8.2 + zPush), l: new THREE.Vector3(0, 1.3, 5.5) },
+    { p: new THREE.Vector3(0, 1.5, 4.4 + zPush * 0.4), l: new THREE.Vector3(0, 1.4, 0) },
+    { p: new THREE.Vector3(0.2, 1.7, 1.8 + zPush * 0.3), l: new THREE.Vector3(0, 1.5, -2) },
+    { p: new THREE.Vector3(-1.5, 1.65, 0.55 + zPush * 0.25), l: new THREE.Vector3(-2.4, 1.3, -3.4) },
+    { p: new THREE.Vector3(0.15, 1.6, 1.7 + zPush * 0.2), l: new THREE.Vector3(1.4, 1.1, -1.2) },
+    { p: new THREE.Vector3(0.85, 1.4, 0.65 + zPush * 0.15), l: new THREE.Vector3(1.4, 1.15, -1.2) },
+    { p: new THREE.Vector3(0.35, 1.7, 2.5 + zPush * 0.2), l: new THREE.Vector3(0.5, 1.2, -1) },
+  ];
 
-function initParticles() {
-  const canvas = $("#particles");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  const look = new THREE.Vector3().copy(cameraPath[0].l);
+  camera.position.copy(cameraPath[0].p);
+  camera.lookAt(look);
 
-  let w = 0;
-  let h = 0;
+  let progress = 0;
+  const tmpP = new THREE.Vector3();
+  const tmpL = new THREE.Vector3();
+
+  function setProgress(t) {
+    progress = Math.min(1, Math.max(0, t));
+    const scaled = progress * (cameraPath.length - 1);
+    const i = Math.floor(scaled);
+    const f = scaled - i;
+    const a = cameraPath[i];
+    const b = cameraPath[Math.min(i + 1, cameraPath.length - 1)];
+    tmpP.lerpVectors(a.p, b.p, f);
+    tmpL.lerpVectors(a.l, b.l, f);
+    camera.position.copy(tmpP);
+    look.copy(tmpL);
+    camera.lookAt(look);
+
+    // Soft door open near start
+    const doorOpen = THREE.MathUtils.smoothstep(progress, 0.08, 0.22);
+    door.rotation.y = -doorOpen * 1.15;
+  }
+
   let raf = 0;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const dots = Array.from({ length: 24 }, () => ({
-    x: Math.random(),
-    y: Math.random(),
-    r: 1 + Math.random() * 2,
-    speed: 0.00012 + Math.random() * 0.0003,
-    a: 0.15 + Math.random() * 0.35,
-    heart: Math.random() > 0.8,
-  }));
-
-  function resize() {
-    w = window.innerWidth;
-    h = window.innerHeight;
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function drawHeart(x, y, size) {
-    ctx.beginPath();
-    ctx.moveTo(x, y + size * 0.3);
-    ctx.bezierCurveTo(x, y, x - size, y, x - size, y + size * 0.35);
-    ctx.bezierCurveTo(
-      x - size,
-      y + size * 0.75,
-      x,
-      y + size * 1.1,
-      x,
-      y + size * 1.2
-    );
-    ctx.bezierCurveTo(
-      x,
-      y + size * 1.1,
-      x + size,
-      y + size * 0.75,
-      x + size,
-      y + size * 0.35
-    );
-    ctx.bezierCurveTo(x + size, y, x, y, x, y + size * 0.3);
-    ctx.fill();
-  }
-
-  function frame() {
-    ctx.clearRect(0, 0, w, h);
-    dots.forEach((p) => {
-      p.y -= p.speed;
-      if (p.y < -0.05) {
-        p.y = 1.05;
-        p.x = Math.random();
-      }
-      ctx.globalAlpha = p.a;
-      ctx.fillStyle = p.heart ? "#ff7eb3" : "#ffd76a";
-      if (p.heart) drawHeart(p.x * w, p.y * h, p.r * 2);
-      else {
-        ctx.beginPath();
-        ctx.arc(p.x * w, p.y * h, p.r, 0, Math.PI * 2);
-        ctx.fill();
+  const clock = new THREE.Clock();
+  function animate() {
+    raf = requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+    cyan.intensity = 1.8 + Math.sin(t * 1.4) * 0.35;
+    magenta.intensity = 1.5 + Math.cos(t * 1.1) * 0.3;
+    confetti.children.forEach((m) => {
+      m.position.y -= m.userData.speed * 0.01;
+      m.rotation.z += m.userData.spin * 0.02;
+      if (m.position.y < 0) m.position.y = 3.1;
+    });
+    cakeGroup.rotation.y =
+      cutProgress < 0.2 ? Math.sin(t * 0.6) * 0.08 : cakeGroup.rotation.y * 0.9;
+    legoGuests.forEach((s) => {
+      if (cutProgress < 0.4) {
+        s.position.y = s.userData.baseY + Math.sin(t * 1.6 + s.userData.phase) * 0.04;
       }
     });
-    raf = requestAnimationFrame(frame);
+    balloons.forEach((b) => {
+      b.position.y = b.userData.baseY + Math.sin(t * 1.1 + b.userData.phase) * 0.12;
+      b.rotation.z = Math.sin(t * 0.8 + b.userData.phase) * 0.08;
+    });
+    renderer.render(scene, camera);
   }
+  animate();
 
-  resize();
-  frame();
-  window.addEventListener("resize", resize, { passive: true });
+  function onResize() {
+    const w = window.innerWidth;
+    const h = Math.max(window.innerHeight, 1);
+    const mobileNow = w <= 768;
+    camera.aspect = w / h;
+    camera.fov = mobileNow ? 62 : 55;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobileNow ? 1.5 : 2));
+    renderer.setSize(w, h);
+    if (window.ScrollTrigger) ScrollTrigger.refresh();
+  }
+  window.addEventListener("resize", onResize, { passive: true });
+  window.addEventListener("orientationchange", () => {
+    window.setTimeout(onResize, 180);
+  });
+
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) cancelAnimationFrame(raf);
-    else raf = requestAnimationFrame(frame);
+    else animate();
   });
+
+  return { setProgress, setCutProgress, camera, scene, renderer };
+}
+
+/* ---------- GSAP story ---------- */
+
+function initStory(room) {
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  const chapters = gsap.utils.toArray(".chapter");
+  const progressBar = $("#progressBar");
+  const scrollHint = $("#scrollHint");
+  const knock = gsap.utils.toArray("#knockBurst span");
+  const crowd = gsap.utils.toArray(".crowd span");
+  const cutStage = $("#cutStage");
+
+  // Master scroll → camera
+  ScrollTrigger.create({
+    trigger: "#story",
+    start: "top top",
+    end: "bottom bottom",
+    scrub: 1,
+    invalidateOnRefresh: true,
+    onUpdate: (self) => {
+      room.setProgress(self.progress);
+      if (progressBar) progressBar.style.width = `${self.progress * 100}%`;
+      if (scrollHint) {
+        scrollHint.classList.toggle("is-hidden", self.progress > 0.04);
+      }
+    },
+  });
+
+  chapters.forEach((chapter) => {
+    const caption = chapter.querySelector(".caption");
+    if (!caption) return;
+    const isFinale = chapter.dataset.chapter === "finale";
+
+    gsap.to(caption, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.8,
+      ease: "power3.out",
+      scrollTrigger: {
+        trigger: chapter,
+        start: "top 65%",
+        end: "top 25%",
+        scrub: true,
+      },
+    });
+
+    if (!isFinale) {
+      gsap.to(caption, {
+        opacity: 0,
+        y: -28,
+        duration: 0.6,
+        ease: "power2.in",
+        scrollTrigger: {
+          trigger: chapter,
+          start: "bottom 55%",
+          end: "bottom 20%",
+          scrub: true,
+        },
+      });
+    }
+  });
+
+  // Knock knock
+  gsap.to(knock, {
+    opacity: 1,
+    scale: 1,
+    stagger: 0.18,
+    ease: "back.out(2)",
+    scrollTrigger: {
+      trigger: "#ch-door",
+      start: "top 40%",
+      end: "top 10%",
+      scrub: true,
+    },
+  });
+
+  // Birthday title cascade
+  gsap.from(".birthday-title span", {
+    y: 40,
+    opacity: 0,
+    stagger: 0.12,
+    ease: "power3.out",
+    scrollTrigger: {
+      trigger: "#ch-birthday",
+      start: "top 55%",
+      end: "top 20%",
+      scrub: true,
+    },
+  });
+
+  // Crowd pop
+  gsap.to(crowd, {
+    opacity: 1,
+    y: 0,
+    stagger: 0.08,
+    ease: "back.out(1.6)",
+    scrollTrigger: {
+      trigger: "#ch-party",
+      start: "top 50%",
+      end: "top 20%",
+      scrub: true,
+    },
+  });
+
+  // Cake cut scrubbed by scroll (LEGO Batwoman in 3D)
+  ScrollTrigger.create({
+    trigger: "#ch-cut",
+    start: "top 85%",
+    end: "bottom 35%",
+    scrub: 0.6,
+    onUpdate: (self) => {
+      room.setCutProgress?.(self.progress);
+      if (self.progress > 0.45) {
+        cutStage?.classList.add("is-cutting");
+        cutStage?.querySelector(".mini-cake")?.classList.add("is-blown");
+      } else {
+        cutStage?.classList.remove("is-cutting");
+        cutStage?.querySelector(".mini-cake")?.classList.remove("is-blown");
+      }
+    },
+  });
+
+  // Finale stays visible once revealed
+  // (no fade-out — handled by skipping finale above)
+}
+
+function initReducedStory(room) {
+  room.setProgress(0.75);
+  room.setCutProgress?.(1);
+  document.querySelectorAll(".caption").forEach((el) => {
+    el.style.opacity = "1";
+    el.style.transform = "none";
+  });
+  $("#scrollHint")?.classList.add("is-hidden");
+  $("#cutStage")?.classList.add("is-cutting");
+  $("#cutStage")?.querySelector(".mini-cake")?.classList.add("is-blown");
 }
