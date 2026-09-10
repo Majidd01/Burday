@@ -744,6 +744,44 @@ async function initRoom() {
     roomGroup.add(banner);
   }
 
+  // Wall graffiti: "pagal"
+  {
+    const c = document.createElement("canvas");
+    c.width = 512;
+    c.height = 256;
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, 512, 256);
+    ctx.fillStyle = "#ff2e97";
+    ctx.font = "800 120px Orbitron, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "#2de2e6";
+    ctx.shadowBlur = 18;
+    ctx.fillText("pagal", 256, 128);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#ffd166";
+    ctx.lineWidth = 4;
+    ctx.strokeText("pagal", 256, 128);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const sign = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.4, 1.2),
+      new THREE.MeshStandardMaterial({
+        map: tex,
+        transparent: true,
+        emissiveMap: tex,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.55,
+        roughness: 0.6,
+      })
+    );
+    // Left wall
+    sign.position.set(-5.92, 1.85, -1.2);
+    sign.rotation.y = Math.PI / 2;
+    roomGroup.add(sign);
+  }
+
   // RGB tower
   const tower = new THREE.Mesh(
     new THREE.BoxGeometry(0.45, 1.1, 0.55),
