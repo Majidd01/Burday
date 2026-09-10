@@ -432,38 +432,63 @@ async function runTeddySequence() {
   status.textContent = "";
 }
 
-/* ---------- Flowing Marvel icons ---------- */
+/* ---------- Flowing Marvel icons + balloons ---------- */
 
-const MARVEL_ICONS = ["🛡️", "⚡", "🤖", "💚", "🕷️", "🦇", "🏹", "🔴", "🟣", "❄️", "🪄", "🦸", "🦸‍♀️", "💥"];
+const MARVEL_ICONS = [
+  "🛡️", "⚡", "🤖", "💚", "🕷️", "🦇", "🏹", "🔴", "🟣", "❄️", "🪄", "🦸", "🦸‍♀️", "💥", "✨", "⭐",
+];
+const BALLOON_EMOJIS = ["🎈", "🎈", "🎈", "🎀", "💕", "🩷", "💜", "🎉"];
 let flowTimer = null;
+let balloonTimer = null;
 
 function startFlowingHeroes() {
   const layer = $("#flowHeroes");
-  if (!layer || prefersReducedMotion) return;
-  layer.innerHTML = "";
+  const balloons = $("#cakeBalloons");
   if (flowTimer) window.clearInterval(flowTimer);
+  if (balloonTimer) window.clearInterval(balloonTimer);
+  if (layer) layer.innerHTML = "";
+  if (balloons) balloons.innerHTML = "";
+  if (prefersReducedMotion) return;
 
-  const spawn = () => {
-    if (layer.childElementCount > 18) return;
+  const spawnIcon = () => {
+    if (!layer || layer.childElementCount > 22) return;
     const el = document.createElement("span");
     el.className = "flow-icon";
     el.textContent = MARVEL_ICONS[(Math.random() * MARVEL_ICONS.length) | 0];
     const fromLeft = Math.random() > 0.5;
-    const size = 1.1 + Math.random() * 1.1;
+    const size = 1.05 + Math.random() * 1.25;
     el.style.fontSize = `${size}rem`;
     el.style.left = fromLeft
-      ? `${2 + Math.random() * 16}%`
-      : `${78 + Math.random() * 16}%`;
-    el.style.top = `${110 + Math.random() * 20}%`;
-    el.style.setProperty("--drift", `${(-40 + Math.random() * 80).toFixed(0)}px`);
-    el.style.setProperty("--spin", `${(-25 + Math.random() * 50).toFixed(0)}deg`);
-    el.style.animationDuration = `${6 + Math.random() * 5}s`;
+      ? `${2 + Math.random() * 18}%`
+      : `${76 + Math.random() * 18}%`;
+    el.style.top = `${108 + Math.random() * 22}%`;
+    el.style.setProperty("--drift", `${(-50 + Math.random() * 100).toFixed(0)}px`);
+    el.style.setProperty("--spin", `${(-30 + Math.random() * 60).toFixed(0)}deg`);
+    el.style.animationDuration = `${5.5 + Math.random() * 5}s`;
     layer.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
   };
 
-  for (let i = 0; i < 6; i++) window.setTimeout(spawn, i * 280);
-  flowTimer = window.setInterval(spawn, 700);
+  const spawnBalloon = () => {
+    if (!balloons || balloons.childElementCount > 16) return;
+    const el = document.createElement("span");
+    el.className = "cake-balloon";
+    el.textContent = BALLOON_EMOJIS[(Math.random() * BALLOON_EMOJIS.length) | 0];
+    el.style.left = `${4 + Math.random() * 88}%`;
+    el.style.setProperty("--size", `${1.35 + Math.random() * 1.4}rem`);
+    el.style.setProperty("--dur", `${7 + Math.random() * 6}s`);
+    el.style.setProperty(
+      "--sway",
+      `${(Math.random() > 0.5 ? 1 : -1) * (18 + Math.random() * 36)}px`
+    );
+    balloons.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  };
+
+  for (let i = 0; i < 8; i++) window.setTimeout(spawnIcon, i * 220);
+  for (let i = 0; i < 10; i++) window.setTimeout(spawnBalloon, i * 180);
+  flowTimer = window.setInterval(spawnIcon, 520);
+  balloonTimer = window.setInterval(spawnBalloon, 650);
 }
 
 /* ---------- Confetti ---------- */

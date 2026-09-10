@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 150" role="img" aria-label="Batman logo">
+  <defs>
+    <radialGradient id="ovalGlow" cx="50%" cy="38%" r="68%">
+      <stop offset="0%" stop-color="#ffe978"/>
+      <stop offset="50%" stop-color="#f5c518"/>
+      <stop offset="100%" stop-color="#b8860b"/>
+    </radialGradient>
+    <filter id="softShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <ellipse
+    cx="130"
+    cy="75"
+    rx="118"
+    ry="62"
+    fill="url(#ovalGlow)"
+    stroke="#1a1200"
+    stroke-width="5"
+    filter="url(#softShadow)"
+  />
+  <!-- Classic bat emblem -->
+  <path
+    fill="#0a0a0a"
+    d="M130 22
+       C126 36 122 44 112 52
+       C96 38 62 42 48 58
+       C62 54 78 62 84 74
+       C66 80 42 96 34 116
+       C58 102 82 108 100 120
+       C112 130 122 140 130 148
+       C138 140 148 130 160 120
+       C178 108 202 102 226 116
+       C218 96 194 80 176 74
+       C182 62 198 54 212 58
+       C198 42 164 38 148 52
+       C138 44 134 36 130 22Z"
+  />
+</svg>
