@@ -564,6 +564,23 @@ async function initRoom() {
   softFill.position.set(-1, 2.4, 2);
   scene.add(softFill);
 
+  // Roof wash — lights aimed at the ceiling so it isn't a black void
+  const roofWash = new THREE.PointLight(0xe8f0ff, 2.8, 16);
+  roofWash.position.set(0, 2.85, -1);
+  scene.add(roofWash);
+
+  const roofCyan = new THREE.PointLight(0x2de2e6, 1.6, 10);
+  roofCyan.position.set(-2.5, 2.9, -2.5);
+  scene.add(roofCyan);
+
+  const roofMagenta = new THREE.PointLight(0xff2e97, 1.4, 10);
+  roofMagenta.position.set(2.5, 2.9, -2.5);
+  scene.add(roofMagenta);
+
+  const roofGold = new THREE.PointLight(0xffd166, 1.2, 9);
+  roofGold.position.set(0, 2.9, 1.5);
+  scene.add(roofGold);
+
   // Room shell
   const roomGroup = new THREE.Group();
   scene.add(roomGroup);
@@ -588,7 +605,12 @@ async function initRoom() {
   floor.rotation.x = -Math.PI / 2;
   roomGroup.add(floor);
 
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(12, 14), wallMat);
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    color: 0x1a2236,
+    roughness: 0.78,
+    metalness: 0.15,
+  });
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(12, 14), ceilingMat);
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = 3.2;
   roomGroup.add(ceiling);
@@ -628,6 +650,46 @@ async function initRoom() {
   });
   ledMagenta.position.set(5.7, 2.7, -1);
   roomGroup.add(ledMagenta);
+
+  // Ceiling LED rails + soft panels
+  const roofLedGeo = new THREE.BoxGeometry(9, 0.05, 0.08);
+  [
+    { z: -3.8, color: 0x2de2e6, intensity: 2.6 },
+    { z: -1.2, color: 0xffd166, intensity: 2.2 },
+    { z: 1.4, color: 0xff2e97, intensity: 2.4 },
+  ].forEach(({ z, color, intensity }) => {
+    const rail = new THREE.Mesh(
+      roofLedGeo,
+      new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: intensity,
+      })
+    );
+    rail.position.set(0, 3.12, z);
+    roomGroup.add(rail);
+  });
+
+  if (!isTiny) {
+    [
+      [-2.2, -2.4, 0x88a0ff],
+      [2.2, -2.4, 0xff9ad5],
+      [0, 0.2, 0xffe0a0],
+    ].forEach(([x, z, color]) => {
+      const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.6, 1.1),
+        new THREE.MeshStandardMaterial({
+          color,
+          emissive: color,
+          emissiveIntensity: 0.55,
+          side: THREE.DoubleSide,
+        })
+      );
+      panel.rotation.x = Math.PI / 2;
+      panel.position.set(x, 3.14, z);
+      roomGroup.add(panel);
+    });
+  }
 
   // Door (outside start)
   const doorGroup = new THREE.Group();
@@ -967,22 +1029,33 @@ async function initRoom() {
   });
   roomGroup.add(shelf);
 
-  // Fairy string lights across ceiling
+  // Fairy string lights across ceiling (+ real glow so the roof lights up)
   const fairyGroup = new THREE.Group();
   const fairyColors = [0xffd166, 0xff7eb3, 0x2de2e6, 0xffffff, 0xb6ff3b];
-  const fairyCount = isTiny ? 10 : isMobile ? 16 : 24;
+  const fairyCount = isTiny ? 14 : isMobile ? 22 : 32;
   for (let i = 0; i < fairyCount; i++) {
     const t = i / (fairyCount - 1);
+    const col = fairyColors[i % fairyColors.length];
     const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.04, 8, 8),
+      new THREE.SphereGeometry(0.05, 8, 8),
       new THREE.MeshStandardMaterial({
-        color: fairyColors[i % fairyColors.length],
-        emissive: fairyColors[i % fairyColors.length],
-        emissiveIntensity: 1.6,
+        color: col,
+        emissive: col,
+        emissiveIntensity: 2.4,
       })
     );
-    bulb.position.set(-4 + t * 8, 2.95 + Math.sin(t * Math.PI * 2) * 0.12, -3.2 + Math.sin(t * 6) * 0.8);
+    const x = -4 + t * 8;
+    const y = 2.95 + Math.sin(t * Math.PI * 2) * 0.12;
+    const z = -3.2 + Math.sin(t * 6) * 0.8;
+    bulb.position.set(x, y, z);
     fairyGroup.add(bulb);
+
+    // Sparse real lights so the ceiling catches color without melting FPS
+    if (i % (isTiny ? 5 : isMobile ? 4 : 3) === 0) {
+      const glow = new THREE.PointLight(col, 0.55, 3.5);
+      glow.position.set(x, y - 0.05, z);
+      fairyGroup.add(glow);
+    }
   }
   roomGroup.add(fairyGroup);
 
@@ -1409,7 +1482,7 @@ function initStory(room) {
     // Cut chapter uses a custom stagger timeline below
     if (isCut) return;
 
-    // One timeline per caption so scroll-back restores it (knock knock included)
+    // One timeline per caption so scroll-back restores it (door unlock included)
     gsap.set(caption, { opacity: 0, y: 28, scale: 0.97 });
 
     if (isFinale) {
@@ -1456,7 +1529,7 @@ function initStory(room) {
     });
   });
 
-  // Knock knock — fromTo so it reverses cleanly when scrolling up
+  // Door unlock chips — fromTo so it reverses cleanly when scrolling up
   gsap.set(knock, { opacity: 0, scale: 0.6 });
   gsap.fromTo(
     knock,
