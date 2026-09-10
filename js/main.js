@@ -1188,12 +1188,11 @@ function initStory(room) {
   const cutWatch = $(".cut-caption__watch");
   const cutReplay = $(".cut-caption__replay");
 
-  // Phase A — light text at top, 3D cut plays (0 → ~0.72)
+  // Phase A — slim top text only; 3D cut stays fully visible
   if (cutCaption) {
-    gsap.set(cutCaption, { opacity: 0, y: 20 });
+    gsap.set(cutCaption, { opacity: 0 });
     gsap.to(cutCaption, {
       opacity: 1,
-      y: 0,
       ease: "power2.out",
       scrollTrigger: {
         trigger: "#ch-cut",
@@ -1210,10 +1209,11 @@ function initStory(room) {
     end: "center center",
     scrub: 0.5,
     onUpdate: (self) => {
-      // Map this first half of the chapter to full 3D cut
       room.setCutProgress?.(self.progress);
-      cutCaption?.classList.toggle("is-watching", self.progress < 0.95);
-      cutCaption?.classList.toggle("is-replaying", false);
+      cutCaption?.classList.add("is-watching");
+      cutCaption?.classList.remove("is-replaying");
+      // Clear GSAP Y transform so fixed top banner stays put
+      if (cutCaption) gsap.set(cutCaption, { clearProps: "transform" });
       cutStage?.classList.remove("is-show", "is-cutting");
       cutStage?.querySelector(".mini-cake")?.classList.remove("is-blown");
       if (cutStage) cutStage.setAttribute("aria-hidden", "true");
@@ -1252,7 +1252,6 @@ function initStory(room) {
   if (cutCaption) {
     gsap.to(cutCaption, {
       opacity: 0,
-      y: -24,
       ease: "power2.in",
       scrollTrigger: {
         trigger: "#ch-cut",
