@@ -15,6 +15,35 @@ const prefersReducedMotion = window.matchMedia(
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
+/* ---------- Mobile: ask to rotate for widescreen ---------- */
+
+function initRotateHint() {
+  const hint = $("#rotateHint");
+  if (!hint) return;
+
+  const update = () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const isTouch =
+      window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
+      navigator.maxTouchPoints > 0;
+    const isNarrow = Math.min(w, h) <= 768;
+    const isMobile = isNarrow || (isTouch && w < 1024);
+    const isPortrait = h >= w;
+    // Show when landing on mobile in portrait — ask for widescreen
+    const show = isMobile && isPortrait;
+    hint.classList.toggle("is-visible", show);
+    hint.setAttribute("aria-hidden", show ? "false" : "true");
+    document.body.classList.toggle("is-rotate-locked", show);
+  };
+
+  update();
+  window.addEventListener("resize", update, { passive: true });
+  window.addEventListener("orientationchange", () => {
+    window.setTimeout(update, 120);
+  });
+}
+
 /* ---------- Canvas helpers: screens + LEGO heroes ---------- */
 
 function makeWishTexture(lines, theme = "cyan") {
@@ -405,6 +434,7 @@ function makeBalloonMesh(color) {
 document.addEventListener("DOMContentLoaded", async () => {
   document.body.classList.add("is-loading");
   applyCopy();
+  initRotateHint();
   initMusic();
 
   const room = await initRoom();

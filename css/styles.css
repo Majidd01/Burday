@@ -90,7 +90,7 @@ body.is-loading {
   to { transform: rotate(360deg); }
 }
 
-/* ---------- Rotate screen (mobile landscape) ---------- */
+/* ---------- Rotate screen (mobile portrait → ask for widescreen) ---------- */
 
 .rotate-hint {
   display: none;
@@ -102,9 +102,13 @@ body.is-loading {
   gap: 0.85rem;
   padding: 1.5rem;
   text-align: center;
-  background: rgba(7, 9, 15, 0.94);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(7, 9, 15, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.rotate-hint.is-visible {
+  display: grid;
 }
 
 .rotate-hint__phone {
@@ -144,29 +148,19 @@ body.is-loading {
   font-size: 0.95rem;
   max-width: 18rem;
   line-height: 1.45;
+  margin: 0 auto;
 }
 
 @keyframes phone-rotate {
   0%,
-  20% { transform: rotate(90deg); }
-  45%,
-  100% { transform: rotate(0deg); }
+  25% { transform: rotate(0deg); }
+  55%,
+  100% { transform: rotate(90deg); }
 }
 
-@media (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
-  .rotate-hint {
-    display: grid;
-  }
-
-  body.is-landscape-locked {
-    overflow: hidden;
-  }
-}
-
-@media (orientation: portrait), (min-width: 901px), (min-height: 521px) {
-  .rotate-hint {
-    display: none !important;
-  }
+body.is-rotate-locked {
+  overflow: hidden;
+  height: 100dvh;
 }
 
 /* ---------- Room canvas ---------- */
