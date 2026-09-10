@@ -6,18 +6,8 @@
 const birthdayData = {
   name: "Zainab Aleem",
 
-  /**
-   * TEST MODE: unlocks automatically after N minutes from page load
-   * so you can wait and see the full timer → party flow.
-   * Set testMode: false and it will unlock at midnight instead.
-   */
-  testMode: false,
-  testUnlockMinutes: 5,
-
-  /** Used when testMode is false */
-  unlockDateTime: null, // filled with tonight midnight if needed
-
-  allowPreview: true,
+  /** Site unlock password */
+  password: "7577",
 
   revealSub: "It’s your birthday, Zainab… and your hero brought cake 🎂🦇",
 
@@ -29,22 +19,6 @@ const birthdayData = {
   musicSrc: "music/song.wav",
 };
 
-function getTonightMidnightISO() {
-  const d = new Date();
-  d.setHours(24, 0, 0, 0);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T00:00:00`;
-}
-
-function getUnlockISO() {
-  if (birthdayData.testMode) {
-    const d = new Date(Date.now() + birthdayData.testUnlockMinutes * 60 * 1000);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
-  return birthdayData.unlockDateTime || getTonightMidnightISO();
-}
-
 const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)"
 ).matches;
@@ -53,17 +27,14 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 let unlocked = false;
-let countdownId = null;
-let unlockAt = null;
 
 document.addEventListener("DOMContentLoaded", () => {
-  unlockAt = new Date(getUnlockISO()).getTime();
   applyConfig();
   buildStars();
   initLoader();
   initMusic();
   if (!prefersReducedMotion) initParticles();
-  initCountdown();
+  initPasswordGate();
   initCakeFlow();
 });
 
@@ -92,28 +63,6 @@ function applyConfig() {
   }
 
   document.title = `Happy Birthday, ${name} 🎂`;
-
-  if (birthdayData.testMode) {
-    const title = $("#gateTitle");
-    const sub = $("#gateSub");
-    if (title) title.textContent = "A little test countdown…";
-    if (sub) {
-      sub.innerHTML = `For testing, this unlocks in <strong>${birthdayData.testUnlockMinutes} minutes</strong> — then the full surprise plays ✨`;
-    }
-  } else {
-    const title = $("#gateTitle");
-    const sub = $("#gateSub");
-    if (title) title.textContent = "The surprise unlocks at midnight";
-    if (sub) {
-      sub.innerHTML =
-        "When the clock hits <strong>12:00 AM</strong>, the party begins ✨";
-    }
-  }
-
-  if (birthdayData.allowPreview) {
-    const preview = $("#previewBtn");
-    if (preview) preview.hidden = false;
-  }
 }
 
 function buildStars() {
@@ -226,73 +175,41 @@ function playFallbackChime() {
   });
 }
 
-/* ---------- Countdown ---------- */
+/* ---------- Password gate ---------- */
 
-function initCountdown() {
-  $("#previewBtn")?.addEventListener("click", () => unlockParty("preview"));
-  $("#unlockWishBtn")?.addEventListener("click", () => unlockParty("wish"));
-  tickCountdown();
-  countdownId = window.setInterval(tickCountdown, 250);
-}
+function initPasswordGate() {
+  const form = $("#passwordForm");
+  const input = $("#passwordInput");
+  const error = $("#passwordError");
+  if (!form || !input) return;
 
-function showUnlockButton() {
-  const unlockBtn = $("#unlockWishBtn");
-  const preview = $("#previewBtn");
-  const hint = $("#countdownHint");
-  if (unlockBtn) {
-    unlockBtn.hidden = false;
-    unlockBtn.classList.add("is-ready");
-  }
-  if (preview) preview.hidden = true;
-  if (hint) {
-    hint.textContent = "Timer done! Tap below to start your wish 💫";
-  }
-  $("#gateTitle") && ($("#gateTitle").textContent = "Your surprise is ready");
-  $("#gateSub") &&
-    ($("#gateSub").innerHTML =
-      "The wait is over — make a wish and continue ✨");
-}
+  window.setTimeout(() => input.focus(), prefersReducedMotion ? 280 : 1000);
 
-function tickCountdown() {
-  const diff = unlockAt - Date.now();
-
-  if (diff <= 0) {
-    updateTimerDisplay(0, 0, 0);
-    if (countdownId) {
-      window.clearInterval(countdownId);
-      countdownId = null;
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const value = String(input.value || "").trim();
+    if (value === birthdayData.password) {
+      error.hidden = true;
+      input.classList.remove("is-wrong");
+      unlockParty();
+      return;
     }
-    // Don't auto-jump — show a clear button to start & move next
-    if (!unlocked) showUnlockButton();
-    return;
-  }
+    error.hidden = false;
+    input.classList.remove("is-wrong");
+    void input.offsetWidth;
+    input.classList.add("is-wrong");
+    input.select();
+  });
 
-  const totalSec = Math.floor(diff / 1000);
-  const hours = Math.floor(totalSec / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const seconds = totalSec % 60;
-  updateTimerDisplay(hours, minutes, seconds);
-
-  const hint = $("#countdownHint");
-  if (hours === 0 && minutes < 2) {
-    hint.textContent = "Almost there… get ready! ✨";
-  }
+  input.addEventListener("input", () => {
+    if (!error.hidden) error.hidden = true;
+    input.classList.remove("is-wrong");
+  });
 }
 
-function updateTimerDisplay(hours, minutes = 0, seconds = 0) {
-  const pad = (n) => String(n).padStart(2, "0");
-  const h = $("#tHours");
-  const m = $("#tMinutes");
-  const s = $("#tSeconds");
-  if (h) h.textContent = pad(hours);
-  if (m) m.textContent = pad(minutes);
-  if (s) s.textContent = pad(seconds);
-}
-
-function unlockParty(reason) {
+function unlockParty() {
   if (unlocked) return;
   unlocked = true;
-  if (countdownId) window.clearInterval(countdownId);
 
   const gate = $("#countdownGate");
   const party = $("#party");
@@ -311,8 +228,6 @@ function unlockParty(reason) {
     },
     prefersReducedMotion ? 80 : 650
   );
-
-  void reason;
 }
 
 /* ---------- Cake + Teddy flow ---------- */
