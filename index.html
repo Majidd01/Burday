@@ -17,6 +17,30 @@
     <p class="loader__text">Booting birthday mode…</p>
   </div>
 
+  <div id="lockGate" class="lock-gate" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+    <div class="lock-gate__card">
+      <p class="lock-gate__eyebrow">Birthday quest</p>
+      <h1 class="lock-gate__title" id="lockTitle">Enter the unlock code</h1>
+      <p class="lock-gate__sub">4 digits. The party stays sealed until you get it right.</p>
+      <form class="lock-gate__form" id="lockForm" autocomplete="off">
+        <label class="visually-hidden" for="lockPin">Unlock code</label>
+        <input
+          id="lockPin"
+          class="lock-gate__input"
+          type="password"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="4"
+          placeholder="••••"
+          required
+          autofocus
+        />
+        <button type="submit" class="lock-gate__btn">Unlock surprise</button>
+      </form>
+      <p class="lock-gate__error" id="lockError" role="alert" hidden>Wrong code — try again</p>
+    </div>
+  </div>
+
   <div id="rotateHint" class="rotate-hint" role="dialog" aria-modal="true" aria-labelledby="rotateTitle">
     <div class="rotate-hint__phone" aria-hidden="true"></div>
     <p class="rotate-hint__title" id="rotateTitle">Rotate your screen</p>

@@ -7,7 +7,10 @@ const birthdayData = {
   name: "Zainab Aleem",
   firstName: "Zainab",
   musicSrc: "music/song.wav",
+  lockCode: "7577",
 };
+
+const LOCK_STORAGE_KEY = "birthday-quest-unlocked";
 
 const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)"
@@ -442,6 +445,79 @@ function makeBalloonMesh(color) {
   return g;
 }
 
+/* ---------- Lock gate (PIN 7577) ---------- */
+
+function isPartyUnlocked() {
+  try {
+    return sessionStorage.getItem(LOCK_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markPartyUnlocked() {
+  try {
+    sessionStorage.setItem(LOCK_STORAGE_KEY, "1");
+  } catch {
+    /* ignore private-mode storage failures */
+  }
+}
+
+function openLockGate() {
+  const gate = $("#lockGate");
+  if (!gate) return;
+  gate.classList.remove("is-open");
+  document.body.classList.add("is-locked");
+  window.setTimeout(() => $("#lockPin")?.focus(), 80);
+}
+
+function closeLockGate() {
+  const gate = $("#lockGate");
+  if (gate) gate.classList.add("is-open");
+  document.body.classList.remove("is-locked");
+}
+
+function initLockGate() {
+  const gate = $("#lockGate");
+  const form = $("#lockForm");
+  const input = $("#lockPin");
+  const error = $("#lockError");
+  if (!gate || !form || !input) return;
+
+  if (isPartyUnlocked()) {
+    closeLockGate();
+    return;
+  }
+
+  openLockGate();
+
+  const showError = () => {
+    if (error) error.hidden = false;
+    gate.classList.remove("is-shake");
+    void gate.offsetWidth;
+    gate.classList.add("is-shake");
+    input.value = "";
+    input.focus();
+  };
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const code = String(input.value || "").trim();
+    if (code === birthdayData.lockCode) {
+      if (error) error.hidden = true;
+      markPartyUnlocked();
+      closeLockGate();
+      return;
+    }
+    showError();
+  });
+
+  input.addEventListener("input", () => {
+    if (error) error.hidden = true;
+    input.value = input.value.replace(/\D/g, "").slice(0, 4);
+  });
+}
+
 /* ---------- Boot ---------- */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -461,6 +537,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#loader")?.classList.add("is-done");
     $("#loader")?.setAttribute("aria-busy", "false");
     document.body.classList.remove("is-loading");
+    initLockGate();
   }, prefersReducedMotion ? 200 : 900);
 });
 
@@ -836,21 +913,21 @@ async function initRoom() {
     const ctx = c.getContext("2d");
     ctx.clearRect(0, 0, 512, 256);
     ctx.fillStyle = "#ff2e97";
-    ctx.font = "800 120px Orbitron, sans-serif";
+    ctx.font = "800 96px Orbitron, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "#2de2e6";
-    ctx.shadowBlur = 18;
+    ctx.shadowBlur = 12;
     ctx.fillText("pagal", 256, 128);
     ctx.shadowBlur = 0;
     ctx.strokeStyle = "#ffd166";
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.strokeText("pagal", 256, 128);
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.4, 1.2),
+      new THREE.PlaneGeometry(1.15, 0.55),
       new THREE.MeshStandardMaterial({
         map: tex,
         transparent: true,
