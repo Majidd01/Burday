@@ -419,6 +419,58 @@ body.is-rotate-locked {
   align-items: end;
   gap: 0.35rem;
   width: 100%;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transform: translateY(16px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--ease), max-height 0.45s var(--ease);
+}
+
+.cut-stage.is-show {
+  opacity: 1;
+  max-height: 280px;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  overflow: visible;
+}
+
+.chapter--cut {
+  min-height: 180vh;
+  align-items: start;
+  padding-top: calc(1.25rem + var(--safe-top));
+}
+
+.caption--cut {
+  align-self: start;
+  margin-top: 0.5rem;
+  width: min(100%, 28rem);
+  padding: 0.95rem 1rem;
+  background:
+    linear-gradient(145deg, rgba(16, 21, 34, 0.72), rgba(10, 14, 24, 0.5));
+}
+
+.caption--cut.is-watching {
+  /* Keep card compact so the 3D cut stays visible */
+  max-width: min(100%, 26rem);
+}
+
+.caption--cut.is-replaying {
+  align-self: center;
+  margin-top: 18vh;
+  background:
+    linear-gradient(145deg, rgba(16, 21, 34, 0.9), rgba(10, 14, 24, 0.78));
+}
+
+.cut-caption__replay {
+  margin-top: 0.75rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.cut-caption__replay[hidden],
+.cut-caption__watch[hidden] {
+  display: none !important;
 }
 
 .cut-stage__lego {
@@ -575,6 +627,14 @@ body.is-rotate-locked {
   .chapter {
     padding-left: 0.85rem;
     padding-right: 0.85rem;
+  }
+
+  .chapter--cut {
+    min-height: 200vh;
+  }
+
+  .caption--cut.is-replaying {
+    margin-top: 12vh;
   }
 
   .caption {

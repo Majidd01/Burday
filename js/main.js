@@ -1106,6 +1106,10 @@ function initStory(room) {
     const caption = chapter.querySelector(".caption");
     if (!caption) return;
     const isFinale = chapter.dataset.chapter === "finale";
+    const isCut = chapter.dataset.chapter === "cut";
+
+    // Cut chapter uses a custom stagger timeline below
+    if (isCut) return;
 
     gsap.to(caption, {
       opacity: 1,
@@ -1179,26 +1183,85 @@ function initStory(room) {
     },
   });
 
-  // Cake cut scrubbed by scroll (LEGO Batwoman in 3D)
+  // Cake cut: 3D room first, then LEGO popup replay
+  const cutCaption = $("#cutCaption");
+  const cutWatch = $(".cut-caption__watch");
+  const cutReplay = $(".cut-caption__replay");
+
+  // Phase A — light text at top, 3D cut plays (0 → ~0.72)
+  if (cutCaption) {
+    gsap.set(cutCaption, { opacity: 0, y: 20 });
+    gsap.to(cutCaption, {
+      opacity: 1,
+      y: 0,
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: "#ch-cut",
+        start: "top 75%",
+        end: "top 45%",
+        scrub: true,
+      },
+    });
+  }
+
   ScrollTrigger.create({
     trigger: "#ch-cut",
-    start: "top 85%",
-    end: "bottom 35%",
-    scrub: 0.6,
+    start: "top 80%",
+    end: "center center",
+    scrub: 0.5,
     onUpdate: (self) => {
+      // Map this first half of the chapter to full 3D cut
       room.setCutProgress?.(self.progress);
-      if (self.progress > 0.45) {
-        cutStage?.classList.add("is-cutting");
-        cutStage?.querySelector(".mini-cake")?.classList.add("is-blown");
-      } else {
-        cutStage?.classList.remove("is-cutting");
-        cutStage?.querySelector(".mini-cake")?.classList.remove("is-blown");
+      cutCaption?.classList.toggle("is-watching", self.progress < 0.95);
+      cutCaption?.classList.toggle("is-replaying", false);
+      cutStage?.classList.remove("is-show", "is-cutting");
+      cutStage?.querySelector(".mini-cake")?.classList.remove("is-blown");
+      if (cutStage) cutStage.setAttribute("aria-hidden", "true");
+      if (cutWatch) cutWatch.hidden = false;
+      if (cutReplay) cutReplay.hidden = true;
+    },
+  });
+
+  // Phase B — after 3D cut, show LEGO + cake popup replay
+  ScrollTrigger.create({
+    trigger: "#ch-cut",
+    start: "center center",
+    end: "bottom 25%",
+    scrub: 0.45,
+    onUpdate: (self) => {
+      room.setCutProgress?.(1);
+      cutCaption?.classList.add("is-replaying");
+      cutCaption?.classList.remove("is-watching");
+      if (cutWatch) cutWatch.hidden = true;
+      if (cutReplay) cutReplay.hidden = false;
+      if (cutStage) {
+        cutStage.setAttribute("aria-hidden", "false");
+        cutStage.classList.add("is-show");
+        if (self.progress > 0.2) {
+          cutStage.classList.add("is-cutting");
+          cutStage.querySelector(".mini-cake")?.classList.add("is-blown");
+        } else {
+          cutStage.classList.remove("is-cutting");
+          cutStage.querySelector(".mini-cake")?.classList.remove("is-blown");
+        }
       }
     },
   });
 
-  // Finale stays visible once revealed
-  // (no fade-out — handled by skipping finale above)
+  // Fade cut caption out into finale
+  if (cutCaption) {
+    gsap.to(cutCaption, {
+      opacity: 0,
+      y: -24,
+      ease: "power2.in",
+      scrollTrigger: {
+        trigger: "#ch-cut",
+        start: "bottom 40%",
+        end: "bottom 15%",
+        scrub: true,
+      },
+    });
+  }
 }
 
 function initReducedStory(room) {
@@ -1209,6 +1272,12 @@ function initReducedStory(room) {
     el.style.transform = "none";
   });
   $("#scrollHint")?.classList.add("is-hidden");
-  $("#cutStage")?.classList.add("is-cutting");
-  $("#cutStage")?.querySelector(".mini-cake")?.classList.add("is-blown");
+  const cutStage = $("#cutStage");
+  cutStage?.classList.add("is-show", "is-cutting");
+  cutStage?.querySelector(".mini-cake")?.classList.add("is-blown");
+  $("#cutCaption")?.classList.add("is-replaying");
+  const watch = $(".cut-caption__watch");
+  const replay = $(".cut-caption__replay");
+  if (watch) watch.hidden = true;
+  if (replay) replay.hidden = false;
 }
