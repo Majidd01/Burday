@@ -19,12 +19,12 @@ const birthdayData = {
 
   allowPreview: true,
 
-  revealSub: "Lady Batman has been waiting to cut your cake…",
+  revealSub: "It’s your birthday, Zainab… and your hero brought cake 🎂🦇",
 
   partyHeading: "Happy Birthday, birthday girl! 🥳",
 
   heartfeltMessage:
-    "I hope this year brings you happiness, success, peace, and countless reasons to smile.\n\nYou deserve all the good things coming your way.\n\nHappy Birthday once again ❤️",
+    "Happy Birthday, Zainab ❤️\n\nI hope this year brings you happiness, success, peace, and countless reasons to smile.\n\nYou deserve all the good things coming your way.\n\nEnjoy your day — it’s all yours.",
 
   musicSrc: "music/song.wav",
 };
@@ -389,7 +389,7 @@ async function runTeddySequence() {
 
   btn.disabled = true;
   btn.style.display = "none";
-  status.textContent = "Lady Batman is on the way… 🦇";
+  status.textContent = "Here comes your birthday hero… 🦇";
 
   stage.className = "cake-stage";
   void stage.offsetWidth;
@@ -399,15 +399,15 @@ async function runTeddySequence() {
 
   stage.classList.remove("is-walking");
   stage.classList.add("is-beside", "is-looking");
-  status.textContent = "Target acquired… cute cake spotted!";
+  status.textContent = "Birthday cake for Zainab… ready!";
   await wait(1100);
 
   stage.classList.add("is-knife");
-  status.textContent = "Bat-knife ready…";
+  status.textContent = "Time to cut your cake…";
   await wait(750);
 
   stage.classList.add("is-cutting");
-  status.textContent = "Make a wish… ✨";
+  status.textContent = "Make a birthday wish, Zainab… ✨";
   await wait(1000);
 
   stage.classList.add("is-blown");
@@ -415,14 +415,14 @@ async function runTeddySequence() {
 
   stage.classList.add("is-sliced", "is-sparkle");
   burstConfetti($("#confettiCake"), prefersReducedMotion ? 28 : 90);
-  status.textContent = "Mission success — perfect slice! 🍰";
+  status.textContent = "Happy Birthday slice secured! 🍰🎉";
   await wait(1000);
 
   stage.classList.add("is-celebrate");
   await wait(600);
 
-  await showSpeech("Happy Birthday! 🎂🎉", 2200);
-  await showSpeech("I saved you the biggest piece! 🦇❤️", 2400);
+  await showSpeech("Happy Birthday, Zainab! 🎂🎉", 2200);
+  await showSpeech("This whole cake is for you 🦇❤️", 2400);
 
   stage.classList.add("is-done");
   if (banner) {
