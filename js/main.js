@@ -542,6 +542,15 @@ async function initRoom() {
   gold.position.set(0, 1.6, -1.8);
   scene.add(gold);
 
+  // Extra warm cozy lamp light
+  const warmLamp = new THREE.PointLight(0xffb070, 1.4, 7);
+  warmLamp.position.set(4.2, 1.5, 1.5);
+  scene.add(warmLamp);
+
+  const softFill = new THREE.PointLight(0xffc8a0, 0.55, 10);
+  softFill.position.set(-1, 2.4, 2);
+  scene.add(softFill);
+
   // Room shell
   const roomGroup = new THREE.Group();
   scene.add(roomGroup);
@@ -552,9 +561,9 @@ async function initRoom() {
     metalness: 0.1,
   });
   const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x0b0e16,
-    roughness: 0.75,
-    metalness: 0.2,
+    color: 0x14101a,
+    roughness: 0.82,
+    metalness: 0.12,
   });
   const accentMat = new THREE.MeshStandardMaterial({
     color: 0x1a2236,
@@ -781,6 +790,235 @@ async function initRoom() {
     sign.rotation.y = Math.PI / 2;
     roomGroup.add(sign);
   }
+
+  /* ---------- Cozy room extras ---------- */
+  const fabric = new THREE.MeshStandardMaterial({
+    color: 0x3d2a4a,
+    roughness: 0.92,
+    metalness: 0.05,
+  });
+  const fabricPink = new THREE.MeshStandardMaterial({
+    color: 0x6b3a55,
+    roughness: 0.9,
+  });
+  const wood = new THREE.MeshStandardMaterial({
+    color: 0x5c3d2e,
+    roughness: 0.7,
+    metalness: 0.08,
+  });
+  const plantGreen = new THREE.MeshStandardMaterial({
+    color: 0x2f6b45,
+    roughness: 0.85,
+  });
+  const potMat = new THREE.MeshStandardMaterial({
+    color: 0xc4a484,
+    roughness: 0.65,
+  });
+
+  // Soft rug under party table
+  const rug = new THREE.Mesh(
+    new THREE.CircleGeometry(2.1, 32),
+    new THREE.MeshStandardMaterial({ color: 0x4a2040, roughness: 0.95 })
+  );
+  rug.rotation.x = -Math.PI / 2;
+  rug.position.set(1.4, 0.02, -1.2);
+  roomGroup.add(rug);
+  const rugTrim = new THREE.Mesh(
+    new THREE.RingGeometry(1.95, 2.1, 32),
+    new THREE.MeshStandardMaterial({ color: 0xffd166, roughness: 0.7 })
+  );
+  rugTrim.rotation.x = -Math.PI / 2;
+  rugTrim.position.set(1.4, 0.025, -1.2);
+  roomGroup.add(rugTrim);
+
+  // Cozy sofa on the right
+  const sofa = new THREE.Group();
+  sofa.position.set(4.3, 0, 0.8);
+  sofa.rotation.y = -0.55;
+  const sofaSeat = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 0.95), fabric);
+  sofaSeat.position.y = 0.4;
+  sofa.add(sofaSeat);
+  const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.75, 0.22), fabricPink);
+  sofaBack.position.set(0, 0.85, -0.38);
+  sofa.add(sofaBack);
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.95), fabric);
+  armL.position.set(-1.1, 0.55, 0);
+  sofa.add(armL);
+  const armR = armL.clone();
+  armR.position.x = 1.1;
+  sofa.add(armR);
+  // pillows
+  [[-0.55, 0.7, 0.05, 0xff7eb3], [0.45, 0.7, 0.08, 0x2de2e6]].forEach(([x, y, z, col]) => {
+    const p = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.28, 0.35),
+      new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 })
+    );
+    p.position.set(x, y, z);
+    p.rotation.y = 0.25;
+    sofa.add(p);
+  });
+  roomGroup.add(sofa);
+
+  // Floor lamp next to sofa
+  const lamp = new THREE.Group();
+  lamp.position.set(5.2, 0, 2.1);
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.06, 1.5, 10),
+    new THREE.MeshStandardMaterial({ color: 0x2a2a32, metalness: 0.6, roughness: 0.3 })
+  );
+  pole.position.y = 0.75;
+  lamp.add(pole);
+  const shade = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.35, 0.35, 16, 1, true),
+    new THREE.MeshStandardMaterial({
+      color: 0xffd9a8,
+      emissive: 0xffb070,
+      emissiveIntensity: 0.7,
+      side: THREE.DoubleSide,
+      roughness: 0.8,
+    })
+  );
+  shade.position.y = 1.55;
+  lamp.add(shade);
+  const bulb = new THREE.PointLight(0xffc090, 0.9, 4);
+  bulb.position.y = 1.45;
+  lamp.add(bulb);
+  roomGroup.add(lamp);
+
+  // Bean bag near desk
+  const bean = new THREE.Mesh(
+    new THREE.SphereGeometry(0.55, 16, 12),
+    new THREE.MeshStandardMaterial({ color: 0x5b2c6f, roughness: 0.95 })
+  );
+  bean.scale.set(1.15, 0.65, 1.1);
+  bean.position.set(-4.5, 0.32, -1.6);
+  roomGroup.add(bean);
+
+  // Side table + mug
+  const sideTable = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.32, 0.35, 0.08, 16),
+    wood
+  );
+  sideTable.position.set(3.3, 0.45, 1.8);
+  roomGroup.add(sideTable);
+  const sideLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.42, 8), wood);
+  sideLeg.position.set(3.3, 0.22, 1.8);
+  roomGroup.add(sideLeg);
+  const mug = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.05, 0.1, 12),
+    new THREE.MeshStandardMaterial({ color: 0xffe8d6, roughness: 0.4 })
+  );
+  mug.position.set(3.25, 0.55, 1.75);
+  roomGroup.add(mug);
+
+  // Plants
+  const makePlant = (x, z, scale = 1) => {
+    const g = new THREE.Group();
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.14 * scale, 0.12 * scale, 0.22 * scale, 10), potMat);
+    pot.position.y = 0.11 * scale;
+    g.add(pot);
+    const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.28 * scale, 10, 10), plantGreen);
+    leaves.position.y = 0.42 * scale;
+    leaves.scale.y = 1.25;
+    g.add(leaves);
+    const leaf2 = leaves.clone();
+    leaf2.scale.set(0.7 * scale, 0.9 * scale, 0.7 * scale);
+    leaf2.position.set(0.12 * scale, 0.5 * scale, -0.05 * scale);
+    g.add(leaf2);
+    g.position.set(x, 0, z);
+    roomGroup.add(g);
+  };
+  makePlant(-5.2, 2.2, 1.1);
+  makePlant(5.3, -2.4, 0.95);
+  makePlant(-0.6, -4.3, 0.8);
+
+  // Bookshelf on right wall
+  const shelf = new THREE.Group();
+  shelf.position.set(5.7, 0, -2.5);
+  const shelfBack = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.8, 1.4), wood);
+  shelfBack.position.set(0, 1.1, 0);
+  shelf.add(shelfBack);
+  for (let i = 0; i < 3; i++) {
+    const board = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 1.35), wood);
+    board.position.set(-0.1, 0.45 + i * 0.5, 0);
+    shelf.add(board);
+  }
+  const bookColors = [0xff2e97, 0x2de2e6, 0xffd166, 0xb6ff3b, 0xff7eb3, 0xa78bfa, 0xffffff];
+  bookColors.forEach((col, i) => {
+    const book = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.28, 0.18),
+      new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 })
+    );
+    book.position.set(-0.18, 0.62 + (i % 3) * 0.5, -0.45 + Math.floor(i / 3) * 0.4);
+    shelf.add(book);
+  });
+  roomGroup.add(shelf);
+
+  // Fairy string lights across ceiling
+  const fairyGroup = new THREE.Group();
+  const fairyColors = [0xffd166, 0xff7eb3, 0x2de2e6, 0xffffff, 0xb6ff3b];
+  const fairyCount = isTiny ? 10 : isMobile ? 16 : 24;
+  for (let i = 0; i < fairyCount; i++) {
+    const t = i / (fairyCount - 1);
+    const bulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.04, 8, 8),
+      new THREE.MeshStandardMaterial({
+        color: fairyColors[i % fairyColors.length],
+        emissive: fairyColors[i % fairyColors.length],
+        emissiveIntensity: 1.6,
+      })
+    );
+    bulb.position.set(-4 + t * 8, 2.95 + Math.sin(t * Math.PI * 2) * 0.12, -3.2 + Math.sin(t * 6) * 0.8);
+    fairyGroup.add(bulb);
+  }
+  roomGroup.add(fairyGroup);
+
+  // Desk keyboard + mouse for gaming cozy
+  const keyboard = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.04, 0.28),
+    new THREE.MeshStandardMaterial({ color: 0x1a1f2c, roughness: 0.45 })
+  );
+  keyboard.position.set(-2.2, 0.94, -3.15);
+  roomGroup.add(keyboard);
+  const mouse = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.04, 0.16),
+    new THREE.MeshStandardMaterial({ color: 0x2de2e6, emissive: 0x2de2e6, emissiveIntensity: 0.3 })
+  );
+  mouse.position.set(-1.55, 0.94, -3.15);
+  roomGroup.add(mouse);
+
+  // Soft floor pouf cushions
+  if (!isTiny) {
+    [[-1.2, 1.5, 0xff7eb3], [2.8, -3.2, 0x2de2e6]].forEach(([x, z, col]) => {
+      const pouf = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.38, 0.28, 16),
+        new THREE.MeshStandardMaterial({ color: col, roughness: 0.92 })
+      );
+      pouf.position.set(x, 0.14, z);
+      roomGroup.add(pouf);
+    });
+  }
+
+  // Poster frames on back wall
+  const posterColors = [0xff2e97, 0xffd166, 0x2de2e6];
+  posterColors.forEach((col, i) => {
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.9, 0.05),
+      new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.5 })
+    );
+    frame.position.set(-3.5 + i * 1.0, 1.9, -4.92);
+    roomGroup.add(frame);
+    const art = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.55, 0.72),
+      new THREE.MeshStandardMaterial({
+        color: col,
+        emissive: col,
+        emissiveIntensity: 0.35,
+      })
+    );
+    art.position.set(-3.5 + i * 1.0, 1.9, -4.88);
+    roomGroup.add(art);
+  });
 
   // RGB tower
   const tower = new THREE.Mesh(
@@ -1149,77 +1387,110 @@ function initStory(room) {
     // Cut chapter uses a custom stagger timeline below
     if (isCut) return;
 
-    gsap.to(caption, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out",
+    // One timeline per caption so scroll-back restores it (knock knock included)
+    gsap.set(caption, { opacity: 0, y: 28, scale: 0.97 });
+
+    if (isFinale) {
+      gsap.fromTo(
+        caption,
+        { opacity: 0, y: 28, scale: 0.97 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: chapter,
+            start: "top 65%",
+            end: "top 30%",
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+      return;
+    }
+
+    const tl = gsap.timeline({
       scrollTrigger: {
         trigger: chapter,
-        start: "top 65%",
-        end: "top 25%",
+        start: "top 70%",
+        end: "bottom 25%",
         scrub: true,
+        invalidateOnRefresh: true,
       },
     });
 
-    if (!isFinale) {
-      gsap.to(caption, {
-        opacity: 0,
-        y: -28,
-        duration: 0.6,
-        ease: "power2.in",
-        scrollTrigger: {
-          trigger: chapter,
-          start: "bottom 55%",
-          end: "bottom 20%",
-          scrub: true,
-        },
-      });
-    }
+    tl.fromTo(
+      caption,
+      { opacity: 0, y: 28, scale: 0.97 },
+      { opacity: 1, y: 0, scale: 1, ease: "power2.out", duration: 0.35 }
+    ).to(caption, {
+      opacity: 0,
+      y: -24,
+      scale: 0.98,
+      ease: "power2.in",
+      duration: 0.35,
+    });
   });
 
-  // Knock knock
-  gsap.to(knock, {
-    opacity: 1,
-    scale: 1,
-    stagger: 0.18,
-    ease: "back.out(2)",
-    scrollTrigger: {
-      trigger: "#ch-door",
-      start: "top 40%",
-      end: "top 10%",
-      scrub: true,
-    },
-  });
+  // Knock knock — fromTo so it reverses cleanly when scrolling up
+  gsap.set(knock, { opacity: 0, scale: 0.6 });
+  gsap.fromTo(
+    knock,
+    { opacity: 0, scale: 0.6 },
+    {
+      opacity: 1,
+      scale: 1,
+      stagger: 0.12,
+      ease: "back.out(2)",
+      scrollTrigger: {
+        trigger: "#ch-door",
+        start: "top 55%",
+        end: "top 15%",
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    }
+  );
 
   // Birthday title cascade
-  gsap.from(".birthday-title span", {
-    y: 40,
-    opacity: 0,
-    stagger: 0.12,
-    ease: "power3.out",
-    scrollTrigger: {
-      trigger: "#ch-birthday",
-      start: "top 55%",
-      end: "top 20%",
-      scrub: true,
-    },
-  });
+  gsap.fromTo(
+    ".birthday-title span",
+    { y: 40, opacity: 0 },
+    {
+      y: 0,
+      opacity: 1,
+      stagger: 0.12,
+      ease: "power3.out",
+      scrollTrigger: {
+        trigger: "#ch-birthday",
+        start: "top 55%",
+        end: "top 20%",
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    }
+  );
 
   // Crowd pop
-  gsap.to(crowd, {
-    opacity: 1,
-    y: 0,
-    stagger: 0.08,
-    ease: "back.out(1.6)",
-    scrollTrigger: {
-      trigger: "#ch-party",
-      start: "top 50%",
-      end: "top 20%",
-      scrub: true,
-    },
-  });
+  gsap.fromTo(
+    crowd,
+    { opacity: 0, y: 12 },
+    {
+      opacity: 1,
+      y: 0,
+      stagger: 0.08,
+      ease: "back.out(1.6)",
+      scrollTrigger: {
+        trigger: "#ch-party",
+        start: "top 50%",
+        end: "top 20%",
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    }
+  );
 
   // Cake cut: 3D room first, then LEGO popup replay
   const cutCaption = $("#cutCaption");
@@ -1250,13 +1521,16 @@ function initStory(room) {
       room.setCutProgress?.(self.progress);
       cutCaption?.classList.add("is-watching");
       cutCaption?.classList.remove("is-replaying");
-      // Clear GSAP Y transform so fixed top banner stays put
       if (cutCaption) gsap.set(cutCaption, { clearProps: "transform" });
       cutStage?.classList.remove("is-show", "is-cutting");
       cutStage?.querySelector(".mini-cake")?.classList.remove("is-blown");
       if (cutStage) cutStage.setAttribute("aria-hidden", "true");
       if (cutWatch) cutWatch.hidden = false;
       if (cutReplay) cutReplay.hidden = true;
+    },
+    onLeaveBack: () => {
+      room.setCutProgress?.(0);
+      cutCaption?.classList.remove("is-watching", "is-replaying");
     },
   });
 
