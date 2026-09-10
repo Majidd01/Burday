@@ -36,36 +36,43 @@
     <source src="music/song.mp3" type="audio/mpeg" />
   </audio>
 
-  <!-- PASSWORD GATE -->
-  <section id="countdownGate" class="gate" aria-label="Password lock">
+  <!-- COUNTDOWN GATE -->
+  <section id="countdownGate" class="gate" aria-label="Countdown">
     <div class="gate__sky" id="gateSky" aria-hidden="true">
       <span class="moon"></span>
     </div>
 
     <div class="gate__content">
-      <p class="gate__eyebrow">Psst… something special is locked</p>
-      <h1 class="gate__title" id="gateTitle">Enter the secret code</h1>
-      <p class="gate__sub" id="gateSub">Type the password to unlock your birthday surprise ✨</p>
+      <p class="gate__eyebrow">Psst… something special is coming</p>
+      <h1 class="gate__title" id="gateTitle">The surprise unlocks soon</h1>
+      <p class="gate__sub" id="gateSub">When the timer hits <strong>zero</strong>, the party begins ✨</p>
 
-      <form id="passwordForm" class="password-form" autocomplete="off">
-        <label class="password-form__label" for="passwordInput">Password</label>
-        <input
-          type="password"
-          id="passwordInput"
-          class="password-form__input"
-          inputmode="numeric"
-          maxlength="8"
-          placeholder="••••"
-          required
-          aria-describedby="passwordError"
-        />
-        <p class="password-form__error" id="passwordError" role="alert" hidden>
-          Wrong code — try again 💫
-        </p>
-        <button type="submit" id="unlockWishBtn" class="btn btn--primary gate__unlock">
-          Unlock surprise ✨
-        </button>
-      </form>
+      <div class="timer" role="timer" aria-live="polite" aria-atomic="true">
+        <div class="timer__block">
+          <span class="timer__value" id="tHours">00</span>
+          <span class="timer__label">hours</span>
+        </div>
+        <span class="timer__sep" aria-hidden="true">:</span>
+        <div class="timer__block">
+          <span class="timer__value" id="tMinutes">00</span>
+          <span class="timer__label">mins</span>
+        </div>
+        <span class="timer__sep" aria-hidden="true">:</span>
+        <div class="timer__block">
+          <span class="timer__value" id="tSeconds">00</span>
+          <span class="timer__label">secs</span>
+        </div>
+      </div>
+
+      <p class="gate__hint" id="countdownHint">Hang tight… something cute is almost ready.</p>
+
+      <button type="button" id="unlockWishBtn" class="btn btn--primary gate__unlock" hidden>
+        Start your wish ✨
+      </button>
+
+      <button type="button" id="previewBtn" class="btn btn--ghost gate__preview" hidden>
+        Peek early (for testing) 👀
+      </button>
     </div>
 
     <div class="gate__toys" aria-hidden="true">
