@@ -183,8 +183,8 @@ function makeLegoTexture(hero) {
       detail: null,
     },
     batwoman: {
-      head: "#1a1a1a",
-      hair: "#8b1a1a",
+      head: "#0a0a0a",
+      // no hair — full black cowl like LEGO Batwoman
       torso: "#111111",
       torso2: "#f5c518",
       legs: "#111111",
@@ -312,14 +312,14 @@ function makeLegoTexture(hero) {
     }
   }
 
-  // eyes
+  // eyes (skip batwoman — cowl draws lenses)
   ctx.fillStyle = p.eyes;
-  if (hero === "spidey" || hero === "ironman" || hero === "batwoman") {
+  if (hero === "spidey" || hero === "ironman") {
     ctx.beginPath();
     ctx.ellipse(114, 92, 12, 8, 0, 0, Math.PI * 2);
     ctx.ellipse(142, 92, 12, 8, 0, 0, Math.PI * 2);
     ctx.fill();
-  } else {
+  } else if (hero !== "batwoman") {
     ctx.fillRect(110, 88, 10, 10);
     ctx.fillRect(136, 88, 10, 10);
     ctx.fillStyle = "#5d4037";
@@ -327,14 +327,27 @@ function makeLegoTexture(hero) {
   }
 
   if (p.detail === "cowl") {
+    // Full black Batwoman cowl (no red hair)
     ctx.fillStyle = "#0a0a0a";
+    roundRect(ctx, 94, 48, 68, 82, 12);
+    // bat ears
     ctx.beginPath();
-    ctx.moveTo(104, 52);
-    ctx.lineTo(112, 28);
+    ctx.moveTo(102, 54);
+    ctx.lineTo(110, 22);
     ctx.lineTo(118, 54);
-    ctx.moveTo(152, 52);
-    ctx.lineTo(144, 28);
-    ctx.lineTo(138, 54);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(138, 54);
+    ctx.lineTo(146, 22);
+    ctx.lineTo(154, 54);
+    ctx.closePath();
+    ctx.fill();
+    // white eye lenses
+    ctx.fillStyle = "#f5f5f5";
+    ctx.beginPath();
+    ctx.ellipse(114, 88, 11, 7, -0.15, 0, Math.PI * 2);
+    ctx.ellipse(142, 88, 11, 7, 0.15, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -1129,11 +1142,13 @@ async function initRoom() {
   knife.visible = false;
   cakeGroup.add(knife);
 
-  // LEGO Batwoman cutter — walks in and cuts on scroll
+  // LEGO Batwoman cutter — black cowl (no red hair), matches popup figure
+  const batwomanFallback = makeLegoTexture("batwoman");
   const cutterMat = new THREE.SpriteMaterial({
-    map: makeLegoTexture("batwoman"),
+    map: batwomanFallback,
     transparent: true,
     depthWrite: false,
+    alphaTest: 0.15,
   });
   const cutter = new THREE.Sprite(cutterMat);
   cutter.scale.set(isMobile ? 0.92 : 1.05, isMobile ? 1.35 : 1.55, 1);
@@ -1142,16 +1157,22 @@ async function initRoom() {
   cutter.position.copy(cutterStart);
   roomGroup.add(cutter);
 
-  // Prefer real Batwoman PNG if available
+  // Use the same LEGO Batwoman PNG as the popup (black cowl)
   new THREE.TextureLoader().load(
     "images/batwoman-lego.png",
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
+      tex.premultiplyAlpha = false;
+      tex.needsUpdate = true;
       cutter.material.map = tex;
       cutter.material.needsUpdate = true;
     },
     undefined,
-    () => {}
+    () => {
+      // keep canvas fallback (black cowl, no red hair)
+      cutter.material.map = batwomanFallback;
+      cutter.material.needsUpdate = true;
+    }
   );
 
   let cutProgress = 0;
@@ -1196,6 +1217,7 @@ async function initRoom() {
       0.4 - raise * 0.4
     );
     knife.rotation.z = -0.5 + raise * 1.35;
+    knife.rotation.y = 0;
 
     const sliceT = THREE.MathUtils.smoothstep(cutProgress, 0.45, 0.9);
     cakeSlice.position.set(sliceT * 0.5, sliceT * 0.14, sliceT * 0.22);
